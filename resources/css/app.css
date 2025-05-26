@@ -1,0 +1,423 @@
+/* General styles */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Manrope', sans-serif;
+    overflow-x: hidden;
+}
+
+a {
+    text-decoration: none;
+}
+
+li {
+    list-style: none;
+}
+
+h1 {
+    font-weight: 600;
+    font-size: 24px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', sans-serif;
+}
+
+a, li {
+    font-family: 'Manrope', sans-serif;
+}
+
+/* Header styles */
+.header {
+    position: fixed; /* Ensure header is fixed */
+    top: 0;
+    width: 100%; /* Ensure header takes full width */
+    z-index: 1000;
+    height: 56px; /* Adjust this value to match the height of your header */
+}
+
+/* Sidebar styles */
+#sidebar {
+    width: 80px; /* Adjust this value to change the size of the sidebar when the toggle is off */
+    min-width: 80px; /* Adjust this value to change the size of the sidebar when the toggle is off */
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 56px; /* Adjust this value to match the height of your header */
+    left: 0;
+    height: calc(100% - 56px); /* Ensure sidebar takes full height minus header height */
+    z-index: 1000;
+    background-color: #2F4156;
+    overflow: hidden; /* Prevent overflow during animation */
+    transition: width 0.5s ease-in-out;
+}
+
+#sidebar.expand {
+    width: 260px;
+}
+
+.sidebar-link {
+    padding: 15px 20px;
+    color: #FFF;
+    display: flex;
+    align-items: center;
+    transition: background 0.75s;
+}
+
+#sidebar:not(.expand) .sidebar-logo,
+#sidebar:not(.expand) a.sidebar-link span {
+    display: none;
+}
+
+.sidebar-logo {
+    margin: auto 0;
+}
+
+.sidebar-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 5px;
+    margin-left: -5px;
+    object-fit: contain;
+}
+
+.sidebar-logo a {
+    color: #FFF;
+    font-size: 22px;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: -1rem;
+}
+
+.sidebar-nav {
+    margin-top: 20px;
+    padding: 10px 0;
+    flex: 1;
+}
+
+.sidebar-item {
+    position: relative;
+}
+
+
+
+#sidebar:not(.expand) .sidebar-item .sidebar-dropdown {
+    position: absolute;
+    top: 0;
+    left: 70px;
+    background-color: #0e2238;
+    padding: 0;
+    min-width: 240px;
+    display: none;
+    transition: opacity 0.3s ease-in-out, max-height 0.3s ease-in-out;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
+
+#sidebar:not(.expand):hover .sidebar-item:hover .has-dropdown + .sidebar-dropdown {
+    display: block;
+    max-height: 15em;
+    width: 100%;
+    opacity: 1;
+}
+
+a.sidebar-link {
+    padding: 10px 26px;
+    color: #FFF;
+    display: block;
+    font-size: 16px;
+    white-space: nowrap;
+    border-left: 3px solid transparent;
+    text-decoration: none;
+}
+
+.sidebar-link i {
+    font-size: 18px;
+    margin-right: 12px;
+}
+
+a.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+    border-left: 3px solid #3b7ddd;
+}
+
+#sidebar.expand .sidebar-link[data-bs-toggle="collapse"]::after {
+    border: solid;
+    border-width: 0 1px 1px 0;
+    content: "";
+    display: inline-block;
+    padding: 2px;
+    position: absolute;
+    right: 24px;
+    top: 22px;
+    transform: rotate(-135deg);
+    transition: all 0.2s ease-out;
+}
+
+#sidebar.expand .sidebar-link[data-bs-toggle="collapse"].collapsed::after {
+    transform: rotate(45deg);
+    transition: all 0.2s ease-out;
+}
+
+/* Toggle button styles */
+.toggle-btn {
+    background-color: transparent;
+    cursor: pointer;
+    border: 0;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: -1rem;
+}
+
+.toggle-btn img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    transition: transform 0.3s;
+}
+
+.toggle-btn:hover img{
+    transform: scale(1.2);
+}
+
+.toggle-btn i {
+    font-size: 24px;
+    color: #FFF;
+}
+
+/* Wrapper and main content styles */
+.wrapper {
+    flex-wrap: nowrap;
+    height: 100vh;
+    margin-left: 70px; /* Adjust margin to account for sidebar width */
+    margin-top: 56px; /* Adjust this value to match the height of your header */
+    transition: margin-left 0.5s ease-in-out;
+}
+
+.wrapper.expand {
+    margin-left: 260px; /* Adjust margin when sidebar is expanded */
+}
+
+.main {
+    min-height: 100vh;
+    width: 100%;
+    overflow: hidden;
+    transition: all 0.75s ease-in-out;
+    background-color: #fafbfe;
+}
+
+/* Notification and Admin Account styles */
+.nav-item.dropdown {
+    margin: 0 15px; /* Add margin to the notification bell and admin account */
+    margin-top: 20px;
+    margin-right: 15px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center horizontally */
+    margin-top: auto;
+}
+
+.nav-link .bi-bell-fill {
+    font-size: 1.1rem; /* Increase the size of the notification icon */
+}
+
+.notification-dropdown {
+    width: 300px;
+    padding: 0;
+    overflow-y: auto;
+    max-height: 300px;
+    text-align: left;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  .notification-content {
+    padding: 10px;
+    border-bottom: 1px solid #0e2238;
+    white-space: normal; /* Allow long words to wrap */
+  }
+
+  .notification-content p {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .notification-content small {
+    display: block;
+    margin-top: 5px;
+    color: #474646;
+    font-size: 12px;
+  }
+
+.admin-dropdown {
+width: 225px;
+  padding: 10px;
+}
+
+.admin-dropdown .dropdown-header {
+  padding: 10px;
+  border-bottom: 1px solid #0e2238;
+}
+
+.admin-dropdown .dropdown-item {
+  padding: 10px;
+  font-size: 14px;
+}
+
+
+.container {
+    padding: 20px;
+}
+
+.table-responsive {
+    margin-top: 20px;
+    border-radius: 10px; /* Add border radius for rounded corners */
+    overflow: hidden; /* Ensure shadow is applied to the whole container */
+}
+
+.table {
+    font-size: 1rem; /* Increase the font size */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow box */
+    border-radius: 10px; /* Add border radius for rounded corners */
+    overflow: hidden; /* Ensure shadow is applied to the whole table */
+}
+
+.table td {
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+
+
+/* messages styles */
+.chat-container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    width: 100%;
+    padding: 0;
+}
+
+.conversation-list {
+    border-right: 1px solid #e5e7eb;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.conversation-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+}
+
+.conversation-item:hover {
+    background-color: #f9fafb;
+}
+
+.message-bubble {
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+}
+
+.admin-message {
+    background-color: #6b21a8;
+    color: white;
+    margin-left: auto;
+}
+
+.user-message {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+/* messages styles end */
+
+/* Chat System Styles */
+.chat-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+}
+
+.conversation-list {
+    background-color: #f8f9fa;
+    border-right: 1px solid #e5e7eb;
+    overflow-y: auto;
+}
+
+.conversation-items {
+    max-height: calc(100vh - 56px); /* Adjust for header height */
+}
+
+.conversation-item {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.conversation-item:hover {
+    background-color: #e9ecef;
+}
+
+.chat-messages {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.message-bubble {
+    max-width: 75%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+}
+
+.user-message {
+    background-color: #e9ecef;
+    color: #212529;
+}
+
+.admin-message {
+    background-color: #C8D9E6;
+    color: #000000;
+    margin-left: auto;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}

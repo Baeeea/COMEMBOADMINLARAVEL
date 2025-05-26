@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        return view('dashboard', $this->getDashboardData());
+    }
+
+    public function refreshData()
+    {
+        return response()->json($this->getDashboardData());
+    }
+
+    private function getDashboardData()
+    {
+        return [
+            'totalResidents' => $this->getTotalResidents(),
+            'totalDocuments' => $this->getTotalDocuments(),
+            'totalComplaints' => $this->getTotalComplaints(),
+            'totalFeedbacks' => $this->getTotalFeedbacks(),
+            'recentActivities' => $this->getRecentActivities(),
+            'recentUpdates' => $this->getRecentUpdates(),
+            'admins' => $this->getAdmins()
+        ];
+    }
+
+    private function getTotalResidents()
+    {
+        try {
+            return DB::table('users')->where('role', 'resident')->count();
+        } catch (\Exception $e) {
+            \Log::error('Error getting total residents: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getTotalDocuments()
+    {
+        try {
+            return DB::table('documentrequest')->where('status', 'pending')->count();
+        } catch (\Exception $e) {
+            \Log::error('Error getting total documents: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getTotalComplaints()
+    {
+        try {
+            return DB::table('complaintrequests')->where('status', 'pending')->count();
+        } catch (\Exception $e) {
+            \Log::error('Error getting total complaints: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getTotalFeedbacks()
+    {
+        try {
+            return DB::table('feedback')->count();
+        } catch (\Exception $e) {
+            \Log::error('Error getting total feedbacks: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    private function getRecentActivities()
+    {
+        try {
+            $recentDocuments = DB::table('documentrequest')
+                ->select(
+                    'firstname',
+                    'lastname',
+                    DB::raw("'Document Request' as category"),
+                    'document_type as type',
+                    'timestamp'
+                )
+                ->orderBy('timestamp', 'desc')
+                ->limit(5)
+                ->get();
+
+            $recentComplaints = DB::table('complaintrequests')
+                ->select(
+                    'firstname',
+                    'lastname',
+                    DB::raw("'Complaint' as category"),
+                    'complaint_type as type',
+                    'timestamp'
+                )
+                ->orderBy('timestamp', 'desc')
+                ->limit(5)
+                ->get();
+
+            return $recentDocuments->concat($recentComplaints)
+                ->sortByDesc('timestamp')
+                ->take(5)
+                ->values();
+        } catch (\Exception $e) {
+            return collect();
+        }
+    }
+
+            // Get recent document requests
+            $recentDocuments = DB::table('documentrequest')
+                ->select(
+                    'firstname',
+                    'lastname',
+                    DB::raw("'Document Request' as category"),
+                    'document_type as type',
+                    'timestamp'
+                )
+                ->orderBy('timestamp', 'desc')
+                ->limit(5)
+                ->get();
+
+            // Get recent complaints
+            $recentComplaints = DB::table('complaintrequests')
+                ->select(
+                    'firstname',
+                    'lastname',
+                    DB::raw("'Complaint' as category"),
+                    'complaint_type as type',
+                    'timestamp'
+                )
+                ->orderBy('timestamp', 'desc')
+                ->limit(5)
+                ->get();
+
+            $stats['recentActivities'] = $recentDocuments->concat($recentComplaints)
+                ->sortByDesc('timestamp')
+                ->take(5)
+                ->values();
+
+            // Get recent news and announcements
+            $recentNews = DB::table('news')
+                ->select(
+                    DB::raw("'News' as category"),
+                    'Title as type',
+                    'createdAt as timestamp'
+                )
+                ->orderBy('createdAt', 'desc')
+                ->limit(5)
+                ->get();
+
+            $recentAnnouncements = DB::table('announcements')
+                ->select(
+                    DB::raw("'Announcement' as category"),
+                    'title as type',
+                    'createdAt as timestamp'
+                )
+                ->orderBy('createdAt', 'desc')
+                ->limit(5)
+                ->get();
+
+            $stats['recentUpdates'] = $recentNews
+                ->concat($recentAnnouncements)
+                ->sortByDesc('timestamp')
+                ->take(5)
+                ->values();
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching dashboard stats: ' . $e->getMessage());
+        }
+
+        return $stats;
+    }
+}

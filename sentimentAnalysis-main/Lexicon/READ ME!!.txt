@@ -1,0 +1,9 @@
+to run:
+
+_import the database
+
+_type in the terminal to install dependecies
+"$npm i"
+
+_type in bash to run the algo
+"python app.py" 

@@ -1,0 +1,24 @@
+// Override Bootstrap Variables (Example)
+$primary: #2F4156;
+$secondary: #C8D9E6;
+$info: #81BFDA;
+
+
+
+// Import Bootstrap variables to override them
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+
+// Import Bootstrap with updated variables
+@import "bootstrap/scss/bootstrap";
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+
+:root {
+    --bs-body-font-family: 'Manrope', sans-serif;
+}
+
+// Apply the Manrope font to the body
+body {
+    font-family: 'Manrope', sans-serif;
+}

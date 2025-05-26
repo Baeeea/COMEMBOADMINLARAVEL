@@ -1,0 +1,43 @@
+body {
+    background-size: cover;
+    backdrop-filter: brightness(0.35);
+}
+
+.login-container {
+    background-color: #E1F2FF;
+    border-radius: 15px;
+    box-shadow: 0px 4px 20px rgba(0, 0, 0, 1);
+    overflow: hidden;
+    opacity: 0.93;
+    height: 600px;
+}
+
+.left-panel {
+    background-color: rgba(47, 65, 86);
+    color: white;
+    text-align: center;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.right-panel {
+    padding: 40px;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+h1, h2 {
+    font-weight: bold;
+}
+
+.login-form input {
+    margin-bottom: 15px;
+}
+
+.input-outline {
+    outline: 2px solid #2F4156; /* Adjust the color and width as needed */
+}
