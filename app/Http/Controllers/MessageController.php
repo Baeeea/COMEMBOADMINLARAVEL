@@ -33,44 +33,52 @@ class MessageController extends Controller
         }
         
         return view('messages', compact('users', 'conversations', 'activeConversation', 'messages'));
-    }
-    
-    /**
+    }    /**
      * Show conversation with a specific user
      */
     public function show($userId)
     {
-        // Get user details
-        $activeConversation = User::findOrFail($userId);
-        
-        // Get all users who can receive messages (for new message dropdown)
-        $users = User::where('id', '!=', Auth::id())->get();
-        
-        // Get conversations for the sidebar
-        $conversations = $this->getConversations();
-        
-        // Check if this is an AJAX request for new message polling
-        if (request()->ajax() || request()->query('format') === 'json') {
-            $lastCheckedTime = request()->query('last_checked', now()->subMinutes(5)->toDateTimeString());
+        try {
+            // Get user details
+            $activeConversation = User::findOrFail($userId);
             
-            // Check for new messages
-            $newMessages = Message::where('sender_id', $userId)
-                ->where('receiver_id', Auth::id())
-                ->where('created_at', '>', $lastCheckedTime)
-                ->exists();
+            // Get all users who can receive messages (for new message dropdown)
+            $users = User::where('id', '!=', Auth::id())->get();
+            
+            // Get conversations for the sidebar
+            $conversations = $this->getConversations();
+            
+            // Check if this is an AJAX request for new message polling
+            if (request()->ajax() || request()->query('format') === 'json') {
+                $lastCheckedTime = request()->query('last_checked', now()->subMinutes(5)->toDateTimeString());
                 
-            return response()->json([
-                'newMessages' => $newMessages
+                // Check for new messages
+                $newMessages = Message::where('sender_id', $userId)
+                    ->where('receiver_id', Auth::id())
+                    ->where('created_at', '>', $lastCheckedTime)
+                    ->exists();
+                      
+                return response()->json([
+                    'newMessages' => $newMessages
+                ], 200, ['Content-Type' => 'application/json;charset=UTF-8']);
+            }
+            
+            // Get messages for the selected conversation
+            $messages = $this->getMessages($userId);
+            
+            // Mark messages as read
+            $this->markAsRead($userId);
+            
+            return view('messages', compact('users', 'conversations', 'activeConversation', 'messages'));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error showing conversation:', [
+                'error' => $e->getMessage(),
+                'userId' => $userId
             ]);
+            
+            // Redirect to the messages index with an error
+            return redirect()->route('messages')->with('error', 'User not found or conversation unavailable.');
         }
-        
-        // Get messages for the selected conversation
-        $messages = $this->getMessages($userId);
-        
-        // Mark messages as read
-        $this->markAsRead($userId);
-        
-        return view('messages', compact('users', 'conversations', 'activeConversation', 'messages'));
     }    /**
      * Send a new message
      */
@@ -85,27 +93,49 @@ class MessageController extends Controller
                 'content_type' => $request->header('Content-Type'),
                 'accept' => $request->header('Accept'),
             ]);
-            
             // Validate request
             $validated = $request->validate([
                 'receiver_id' => 'required|exists:users,id',
                 'message' => 'required|string|max:1000',
+                // We validate sender_id if present but will override it with Auth::id()
+                'sender_id' => 'sometimes|numeric',
             ]);
-            
             // Check receiver exists
             $receiver = User::find($request->receiver_id);
             if (!$receiver) {
                 throw new \Exception("Receiver user not found");
             }
             
+            // Prevent sending messages to yourself
+            if ($receiver->id == Auth::id()) {
+                throw new \Exception("You cannot send messages to yourself");
+            }
             // Create message
             $message = new Message();
-            $message->sender_id = Auth::id() ?? 0; // Fallback if not authenticated
-            if ($message->sender_id === 0) {
+            
+            // Ensure the sender is the authenticated user
+            if (!Auth::check()) {
                 throw new \Exception("You must be logged in to send messages");
             }
+              // Sanitize message text to ensure valid UTF-8
+            $sanitizedMessage = mb_convert_encoding($request->message, 'UTF-8', 'UTF-8');
+            
+            // Check schema to see if we need to set sender_type and receiver_type
+            $hasSenderType = \Illuminate\Support\Facades\Schema::hasColumn('messages', 'sender_type');
+            $hasReceiverType = \Illuminate\Support\Facades\Schema::hasColumn('messages', 'receiver_type');
+            
+            $message->sender_id = Auth::id();
             $message->receiver_id = $request->receiver_id;
-            $message->message = $request->message;
+            
+            // Only set these fields if they exist in the schema
+            if ($hasSenderType) {
+                $message->sender_type = 'App\Models\User';
+            }
+            if ($hasReceiverType) {
+                $message->receiver_type = 'App\Models\User';
+            }
+            
+            $message->message = $sanitizedMessage;
             $message->is_read = false;
             $message->save();
             
@@ -119,13 +149,14 @@ class MessageController extends Controller
             
             // Handle AJAX requests
             if ($request->ajax() || $request->wantsJson() || $request->expectsJson()) {
+                // Ensure proper JSON encoding with UTF-8
                 return response()->json([
                     'success' => true,
                     'message' => 'Message sent successfully!',
                     'data' => [
                         'message' => $message->load('sender', 'receiver')
                     ]
-                ]);
+                ], 200, ['Content-Type' => 'application/json;charset=UTF-8']);
             }
             
             // Regular form submission
@@ -152,7 +183,7 @@ class MessageController extends Controller
                         'file' => $e->getFile(),
                         'line' => $e->getLine(),
                     ] : null
-                ], 500);
+                ], 500, ['Content-Type' => 'application/json;charset=UTF-8']);
             }
             
             return redirect()->back()->with('error', 'Failed to send message. Please try again.');
@@ -259,10 +290,12 @@ class MessageController extends Controller
     
     /**
      * Get list of users the current user has conversations with
-     */
-    private function getConversations()
+     */    private function getConversations()
     {
         $userId = Auth::id();
+        if (!$userId) {
+            return collect(); // Return empty collection if user is not authenticated
+        }
         
         // Find all users that the current user has exchanged messages with
         $userIds = Message::where('sender_id', $userId)
@@ -274,18 +307,26 @@ class MessageController extends Controller
                     ? $message->receiver_id
                     : $message->sender_id;
             })
+            ->filter() // Filter out any null values
             ->unique()
             ->values();
+          // Get the user objects, only if we have user IDs
+        if ($userIds->isEmpty()) {
+            return collect(); // Return empty collection if no conversations
+        }
         
-        // Get the user objects
         $users = User::whereIn('id', $userIds)->get();
         
         // Calculate unread count for each user
         foreach ($users as $user) {
-            $user->unread_count = Message::where('sender_id', $user->id)
-                ->where('receiver_id', $userId)
-                ->where('is_read', false)
-                ->count();
+            if ($user && $user->id) {
+                $user->unread_count = Message::where('sender_id', $user->id)
+                    ->where('receiver_id', $userId)
+                    ->where('is_read', false)
+                    ->count();
+            } else {
+                $user->unread_count = 0;
+            }
         }
         
         return $users;
@@ -293,9 +334,12 @@ class MessageController extends Controller
     
     /**
      * Get messages between current user and specified user
-     */
-    private function getMessages($otherUserId)
+     */    private function getMessages($otherUserId)
     {
+        if (!$otherUserId) {
+            return collect(); // Return empty collection if otherUserId is null
+        }
+        
         $userId = Auth::id();
         
         return Message::where(function ($query) use ($userId, $otherUserId) {
@@ -331,7 +375,7 @@ class MessageController extends Controller
             ->where('is_read', false)
             ->count();
         
-        return response()->json(['count' => $count]);
+        return response()->json(['count' => $count], 200, ['Content-Type' => 'application/json;charset=UTF-8']);
     }
     
     /**
@@ -357,11 +401,12 @@ class MessageController extends Controller
             
             // Test message insert
             $testResult = null;
-            if ($request->has('test_insert') && count($otherUsers) > 0) {
-                $testUser = $otherUsers->first();
+            if ($request->has('test_insert') && count($otherUsers) > 0) {                $testUser = $otherUsers->first();
                 $testMessage = new Message();
                 $testMessage->sender_id = $currentUserId;
                 $testMessage->receiver_id = $testUser->id;
+                $testMessage->sender_type = 'App\Models\User';
+                $testMessage->receiver_type = 'App\Models\User';
                 $testMessage->message = 'Test message from debug endpoint: ' . now();
                 $testMessage->is_read = false;
                 $testMessage->save();

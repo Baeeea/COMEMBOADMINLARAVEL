@@ -60,6 +60,7 @@
                 <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -437,6 +438,22 @@ function manualRefresh() {
   document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('sidebar');
     const dropdownToggles = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    
+    // Initialize all Bootstrap dropdowns
+    var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
+    var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+      return new bootstrap.Dropdown(dropdownToggleEl)
+    });
+    
+    // Specifically target the admin dropdown
+    const adminDropdown = document.getElementById('adminDropdown');
+    if (adminDropdown) {
+      adminDropdown.addEventListener('click', function(e) {
+        e.preventDefault();
+        const dropdown = bootstrap.Dropdown.getInstance(adminDropdown) || new bootstrap.Dropdown(adminDropdown);
+        dropdown.toggle();
+      });
+    }
     
     function updateDropdownBehavior() {
       const isExpanded = sidebar.classList.contains('expand');

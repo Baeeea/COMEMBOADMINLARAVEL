@@ -261,6 +261,11 @@
                                 ? $conversation->receiver 
                                 : $conversation->sender;
                             
+                            // Skip if other user is null
+                            if (!$otherUser) {
+                                continue;
+                            }
+                            
                             // Get the last message for preview
                             $lastMessage = App\Models\Message::where(function($query) use ($otherUser) {
                                     $query->where('sender_id', Auth::id())
@@ -360,7 +365,7 @@
                     <div class="p-3 border-top bg-white">
                         <form class="d-flex" action="{{ route('messages.store') }}" method="POST" id="messageForm">
                             @csrf
-                            <input type="hidden" name="receiver_id" value="{{ $activeConversation->id }}">
+                            <input type="hidden" name="receiver_id" value="{{ $activeConversation->id ?? '' }}">
                             <input type="text" class="form-control me-2 rounded-pill" name="message" placeholder="Type your message..." required>
                             <button type="submit" class="btn btn-primary rounded-circle">
                                 <i class="bi bi-send-fill"></i>
