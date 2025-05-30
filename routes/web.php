@@ -7,6 +7,7 @@ use App\Http\Controllers\DocumentRequestController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ViewResidentController;
+use App\Http\Controllers\ProfileImageController;
 use App\Services\SentimentAnalysisService;
 // Redirect root to dashboard if authenticated, otherwise to login
 Route::get('/', function () {
@@ -19,6 +20,9 @@ Route::get('/login', function () {
 })->name('login.form');
 
 Route::post('/login', [AuthController::class, 'login'])->name('login.process');
+
+// Profile image route - supports users, admins, and residents
+Route::get('/profile-image/{id}', [ProfileImageController::class, 'getProfileImage'])->name('profile.image');
 
 // Dashboard routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');

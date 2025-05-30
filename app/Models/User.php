@@ -107,12 +107,19 @@ class User extends Authenticatable
     /**
      * Get the user's avatar URL using different API services
      */
-    public function getAvatarUrl($size = 150, $type = 'ui-avatars')
+    public function getAvatarUrl($size = 150, $type = 'ui-avatars', $debug = false)
     {
-        // If user has uploaded profile photo stored as BLOB, use direct REST API
+        // If user has uploaded profile photo stored as BLOB, use our Laravel route
         if ($this->profile) {
-            // Use the direct API endpoint with cache-busting parameter
-            return url("/api/profile_image.php?id={$this->id}&t=".time());
+            // Add version for cache control based on updated_at timestamp
+            $version = $this->updated_at ? $this->updated_at->timestamp : time();
+            // Use route() helper to generate the URL properly with parameters
+            return route('profile.image', [
+                'id' => $this->id, 
+                'size' => $size, 
+                'debug' => $debug ? '1' : '0',
+                'v' => $version
+            ]);
         }
 
         // Fallback to API-generated avatars

@@ -8,8 +8,8 @@ if ($debug) {
     error_reporting(E_ALL);
 }
 
-// Database connection settings - update these with your actual values
-$db_host = 'localhost'; 
+// Database connection settings
+$db_host = '127.0.0.1'; 
 $db_name = 'barangaycomembo';
 $db_user = 'root';
 $db_pass = '';
@@ -26,11 +26,20 @@ try {
     // Connect to database
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Query for profile image
-    $stmt = $pdo->prepare("SELECT profile FROM users WHERE id = ?");
+      // Query for profile image
+    $stmt = $pdo->prepare("SELECT id, name, profile FROM users WHERE id = ?");
     $stmt->execute([$id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($debug) {
+        error_log("Querying for user ID: $id");
+        if ($user) {
+            error_log("User found: " . $user['name']);
+            error_log("Profile data exists: " . (empty($user['profile']) ? "No" : "Yes - " . strlen($user['profile']) . " bytes"));
+        } else {
+            error_log("No user found with ID: $id");
+        }
+    }
     
     if ($user && !empty($user['profile'])) {
         // Get image data

@@ -52,7 +52,7 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ Auth::user()->profile ? url('/profile_api.php?id='.Auth::user()->id) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF&size=30' }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <img src="{{ Auth::user()->profile ? route('profile.image', ['id' => Auth::user()->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF&size=30' }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
             <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">

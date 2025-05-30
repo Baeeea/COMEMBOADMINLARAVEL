@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -35,4 +34,8 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'credentials' => storage_path('app/firebase/firebase_credentials.json'),
+        'database_url' => env('FIREBASE_DATABASE_URL', 'https://brgycomembosystem-default-rtdb.asia-southeast1.firebasedatabase.app/'),
+    ],
 ];
