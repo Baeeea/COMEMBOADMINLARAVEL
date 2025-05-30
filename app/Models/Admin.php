@@ -29,7 +29,7 @@ class Admin extends Model
         'age',
         'contact_number',
         'verified',
-        'profile_photo',
+        'profile',
         'validIDFront',
         'validIDBack',
         'birthdate'

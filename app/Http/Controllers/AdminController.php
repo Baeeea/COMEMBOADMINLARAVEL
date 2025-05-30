@@ -89,29 +89,45 @@ class AdminController extends Controller
 
     /**
      * Update the specified admin in storage.
-     */
-    public function update(Request $request, $id)
+     */    public function update(Request $request, $id)
     {
         $admin = User::where('id', $id)
                     ->where(function($query) {
                         $query->where('role', 'admin')
                               ->orWhere('role', 'super_admin');
                     })
-                    ->firstOrFail();
-
-        $request->validate([
+                    ->firstOrFail();        $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $admin->id,
-           
             'role' => 'required|string|in:admin,super_admin',
+            'profile' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'firstname' => 'nullable|string|max:255',
+            'lastname' => 'nullable|string|max:255',
         ]);
 
         $updateData = [
             'name' => $request->name,
             'email' => $request->email,
-            
             'role' => $request->role,
         ];
+
+        // Handle optional fields
+        if ($request->has('firstname')) {
+            $updateData['firstname'] = $request->firstname;
+        }
+        
+        if ($request->has('lastname')) {
+            $updateData['lastname'] = $request->lastname;
+        }        // Handle profile picture upload for BLOB storage
+        if ($request->hasFile('profile')) {
+            $profilePhoto = $request->file('profile');
+            
+            // Read the file content as binary data
+            $imageData = file_get_contents($profilePhoto->getPathname());
+            
+            // Store binary data directly in the database
+            $updateData['profile'] = $imageData;
+        }
 
         if ($request->filled('password')) {
             $updateData['password'] = bcrypt($request->password);
@@ -120,7 +136,7 @@ class AdminController extends Controller
         $admin->update($updateData);
 
         $this->triggerLiveUpdate();
-        return redirect()->route('admin')->with('success', 'Admin updated successfully!');
+        return redirect()->route('admin.show', $admin->id)->with('success', 'Profile updated successfully!');
     }
 
     /**

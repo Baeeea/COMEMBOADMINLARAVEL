@@ -52,7 +52,7 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ asset('img/person1.png') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <img src="{{ Auth::user()->getAvatarUrl(30, 'ui-avatars') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
             <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">
@@ -68,8 +68,8 @@
     <!-- HEADER ENDS -->
 
     <!-- SIDEBAR -->
-    <div class="wrapper">
-      <aside id="sidebar">
+    <div class="wrapper expand">
+      <aside id="sidebar" class="expand">
         <ul class="sidebar-nav">
           <li class="sidebar-item">
             <a href="{{ route('dashboard') }}" class="sidebar-link">

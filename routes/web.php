@@ -90,6 +90,83 @@ Route::get('/profile', function () {
 
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Profile image route for serving BLOB data for users
+Route::get('/profile-image/{id}', function($id) {
+    try {
+        // Connect directly to the database to retrieve the image
+        $pdo = new PDO(
+            "mysql:host=".config('database.connections.mysql.host').";dbname=".config('database.connections.mysql.database'),
+            config('database.connections.mysql.username'),
+            config('database.connections.mysql.password')
+        );
+        
+        $stmt = $pdo->prepare("SELECT profile FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$user || !$user['profile']) {
+            // Return a default image or 404
+            abort(404);
+        }
+        
+        // Get the image data
+        $imageData = $user['profile'];
+        
+        // Detect the image type
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($imageData);
+        
+        // Return the image with appropriate headers
+        return response($imageData)
+            ->header('Content-Type', $mimeType)
+            ->header('Cache-Control', 'public, max-age=3600');
+    } catch (\Exception $e) {
+        return response("Error: " . $e->getMessage(), 500);
+    }
+})->name('profile.image');
+
+// Profile image route for serving BLOB data for residents
+Route::get('/resident-profile-image/{id}', function($id) {
+    $resident = \App\Models\Resident::find($id);
+    
+    if (!$resident || !$resident->profile) {
+        // Return a default image or 404
+        abort(404);
+    }
+    
+    // Assuming the profile column contains binary image data
+    $imageData = $resident->profile;
+    
+    // Detect the image type (you might want to store this separately)
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->buffer($imageData);
+    
+    return response($imageData)
+        ->header('Content-Type', $mimeType)
+        ->header('Cache-Control', 'public, max-age=3600');
+})->name('resident.profile.image'); // Make sure the route is named)->name('profile.image');
+
+// Resident profile image route for serving BLOB data 
+Route::get('/resident-image/{id}', function($id) {
+    $resident = \App\Models\Resident::find($id);
+    
+    if (!$resident || !$resident->profile) {
+        // Return a default image or 404
+        abort(404);
+    }
+    
+    // Assuming the profile column contains binary image data
+    $imageData = $resident->profile;
+    
+    // Detect the image type (you might want to store this separately)
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mimeType = $finfo->buffer($imageData);
+    
+    return response($imageData)
+        ->header('Content-Type', $mimeType)
+        ->header('Cache-Control', 'public, max-age=3600');
+})->name('resident.image');
+
 
 // Use the DashboardController if it's available and has functionality
 Route::get('/documentrequest', [DocumentRequestController::class, 'index'])->middleware('auth')->name('documentrequest');

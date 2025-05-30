@@ -52,7 +52,7 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ asset('img/person1.png') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <img src="{{ Auth::user()->getAvatarUrl(30, 'ui-avatars') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
             <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">
@@ -68,8 +68,8 @@
     <!-- HEADER ENDS -->
 
     <!-- SIDEBAR -->
-    <div class="wrapper">
-      <aside id="sidebar">
+    <div class="wrapper expand">
+      <aside id="sidebar" class="expand">
         <ul class="sidebar-nav">
           <li class="sidebar-item">
             <a href="{{ route('dashboard') }}" class="sidebar-link">
@@ -81,6 +81,7 @@
             <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse" data-bs-target="#task" aria-expanded="false" aria-controls="task">
               <i class="bi bi-file-earmark-ruled-fill fs-4"></i>
               <span class="fs-5 lead text-secondary">Services</span>
+              <i class="bi bi-chevron-down ms-auto dropdown-arrow"></i>
             </a>
             <ul id="task" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
               <li class="sidebar-item">
@@ -95,6 +96,7 @@
             <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse" data-bs-target="#auth" aria-expanded="false" aria-controls="auth">
               <i class="bi bi-megaphone-fill fs-4"></i>
               <span class="fs-5 lead text-secondary">Publish</span>
+              <i class="bi bi-chevron-down ms-auto dropdown-arrow"></i>
             </a>
             <ul id="auth" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
               <li class="sidebar-item">
@@ -125,6 +127,7 @@
             <a href="#" class="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse" data-bs-target="#acc" aria-expanded="false" aria-controls="acc">
               <i class="bi bi-person-vcard-fill fs-4"></i>
               <span class="fs-5 lead text-secondary">Accounts</span>
+              <i class="bi bi-chevron-down ms-auto dropdown-arrow"></i>
             </a>
             <ul id="acc" class="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
               <li class="sidebar-item">
@@ -291,8 +294,75 @@
 
     </div>
     
+    <!-- Dynamic Dropdown Functionality Script -->
+    <script>
+      console.log('Bootstrap version:', typeof bootstrap !== 'undefined' ? 'Loaded' : 'Not loaded');
+      
+      document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const dropdownToggles = document.querySelectorAll('[data-bs-toggle="collapse"]');
+        
+        console.log('DOM loaded, found dropdown toggles:', dropdownToggles.length);
+        
+        function updateDropdownBehavior() {
+          const isExpanded = sidebar.classList.contains('expand');
+          
+          dropdownToggles.forEach(toggle => {
+            const targetId = toggle.getAttribute('data-bs-target');
+            const targetElement = document.querySelector(targetId);
+            
+            if (isExpanded) {
+              // When expanded: enable Bootstrap collapse
+              toggle.setAttribute('data-bs-toggle', 'collapse');
+              // Remove any hover event listeners
+              toggle.onclick = null;
+            } else {
+              // When collapsed: disable Bootstrap collapse, use hover
+              toggle.removeAttribute('data-bs-toggle');
+              // Prevent default click behavior when collapsed
+              toggle.onclick = function(e) {
+                e.preventDefault();
+                return false;
+              };
+            }
+          });
+          
+          console.log('Dropdown behavior updated. Sidebar expanded:', isExpanded);
+        }
+        
+        // Initial setup
+        updateDropdownBehavior();
+        
+        // Listen for sidebar toggle changes
+        const toggleBtn = document.getElementById('toggleSidebar');
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', function() {
+            // Wait for the toggle animation to complete
+            setTimeout(updateDropdownBehavior, 100);
+          });
+        }
+        
+        // Also listen for direct sidebar class changes
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              updateDropdownBehavior();
+            }
+          });
+        });
+        
+        observer.observe(sidebar, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+      });
+    </script>
+    
     <!-- Live Updates Script -->
     <script src="{{ asset('js/live-updates.js') }}"></script>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   </body>
 </html>

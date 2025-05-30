@@ -35,13 +35,11 @@ class Resident extends Model
         'age',
         'contact_number',
         'verified',
-        'profile_photo',
+        'profile',
         'validIDFront',
         'validIDBack',
         'birthdate'
-    ];
-
-    /**
+    ];    /**
      * The attributes that should be hidden for serialization.
      */
     protected $hidden = [

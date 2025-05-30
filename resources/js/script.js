@@ -5,12 +5,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   toggleSidebarBtn.addEventListener('click', function () {
     sidebar.classList.toggle('expand');
+    wrapper.classList.toggle('expand'); // Also toggle wrapper class
 
-    // Adjust the wrapper's margin dynamically
+    // Adjust the wrapper's margin dynamically (backup for CSS)
     if (sidebar.classList.contains('expand')) {
-      wrapper.style.marginLeft = '260px';
+      wrapper.style.marginLeft = '130px'; /* Updated to match new sidebar width */
     } else {
-      wrapper.style.marginLeft = '70px';
+      wrapper.style.marginLeft = '130px'; /* Same width for both states */
     }
   });
 });

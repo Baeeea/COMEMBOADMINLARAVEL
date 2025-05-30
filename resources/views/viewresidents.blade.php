@@ -52,7 +52,7 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ asset('img/person1.png') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <img src="{{ Auth::user()->getAvatarUrl(30, 'ui-avatars') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
             <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">
@@ -68,8 +68,8 @@
     <!-- HEADER ENDS -->
 
     <!-- SIDEBAR -->
-    <div class="wrapper">
-      <aside id="sidebar">
+    <div class="wrapper expand">
+      <aside id="sidebar" class="expand">
         <ul class="sidebar-nav">
           <li class="sidebar-item">
             <a href="{{ route('dashboard') }}" class="sidebar-link">
@@ -148,11 +148,16 @@
           <div class="col-md-4">
             <aside class="position-fixed" style="width: 20%; height: 100vh; margin-left: -12px; border-right: 5px solid #ccc; overflow-y: auto;">              <div class="h-100 p-4 bg-secondary-subtle">
                 <div class="text-center">
-                  @if($resident->profile_photo)
-                    <img src="{{ asset('storage/' . $resident->profile_photo) }}" alt="Resident Avatar" class="rounded-circle mb-3 mt-2" width="100" height="100">
-                  @else
-                    <img src="{{ asset('img/person1.png') }}" alt="Resident Avatar" class="rounded-circle mb-3 mt-2" width="100" height="100">
-                  @endif                  <h5 class="card-title mb-3">{{ $resident->username ? '@' . $resident->username : ($resident->email ?? 'N/A') }}</h5>
+                  @php
+                    // Generate name for avatar
+                    $displayName = '';
+                    if ($resident->firstname || $resident->lastname) {
+                      $displayName = trim(($resident->firstname ?? '') . ' ' . ($resident->lastname ?? ''));
+                    } else {
+                      $displayName = $resident->username ?? $resident->email ?? 'User';
+                    }
+                  @endphp
+                  <img src="https://ui-avatars.com/api/?name={{ urlencode($displayName) }}&color=7F9CF5&background=EBF4FF&size=100" alt="Resident Avatar" class="rounded-circle mb-3 mt-2" width="100" height="100">                  <h5 class="card-title mb-3">{{ $resident->username ? '@' . $resident->username : ($resident->email ?? 'N/A') }}</h5>
                   <p class="{{ $resident->verified ? 'text-success' : 'text-danger' }}">
                     {{ $resident->verified ? 'Verified' : 'Not Verified' }}
                   </p>

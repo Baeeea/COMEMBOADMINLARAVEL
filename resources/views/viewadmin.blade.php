@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-    @vite(['resources/css/styles.scss', 'resources/js/app.js', 'resources/css/app.css', 'resources/js/script.js'])
+    @vite(['resources/css/styles.scss', 'resources/js/app.js', 'resources/css/app.css', 'resources/css/profile.css', 'resources/js/script.js'])
   </head>
 
   <body>
@@ -52,7 +52,7 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ asset('img/person1.png') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <img src="{{ Auth::user()->getAvatarUrl(30, 'ui-avatars') }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
             <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">
@@ -68,8 +68,8 @@
     <!-- HEADER ENDS -->
 
     <!-- SIDEBAR -->
-    <div class="wrapper">
-      <aside id="sidebar">
+    <div class="wrapper expand">
+      <aside id="sidebar" class="expand">
         <ul class="sidebar-nav">
           <li class="sidebar-item">
             <a href="{{ route('dashboard') }}" class="sidebar-link">
@@ -146,7 +146,9 @@
           <div class="col-md-4">
             <aside class="position-fixed" style="width: 20%; height: 100vh; margin-left: -12px; border-right: 5px solid #ccc; overflow-y: auto;">
               <div class="h-100 p-4 bg-secondary-subtle">                <div class="text-center">
-                  <img src="{{ asset('img/person1.png') }}" alt="Admin Avatar" class="rounded-circle mb-3 mt-2" width="100" height="100">
+                  <div class="profile-image-container mb-3 mt-2">
+                    <img src="{{ Auth::user()->getAvatarUrl(150, 'ui-avatars') }}" alt="Admin Avatar" class="profile-image">
+                  </div>
                   <h5 class="card-title mb-1">{{ Auth::user()->name }}</h5>
                   <p class="text-muted">{{ Auth::user()->email }}</p>
                 </div>
@@ -213,17 +215,20 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <div class="text-center mb-4">
-                <div class="rounded-circle border" style="width: 100px; height: 100px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center;">
-                  <img id="profilePreview" src="{{ asset('img/person1.png') }}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-                <div class="mt-3">
-                  <label for="profilePicture" class="btn btn-outline-primary">Select Photo</label>
-                  <input type="file" id="profilePicture" class="d-none" accept="image/*" onchange="previewProfilePicture(event)">
-                </div>
-              </div>              <form action="{{ route('admin.update', Auth::user()->id) }}" method="POST">
+              <form action="{{ route('admin.update', Auth::user()->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
+                
+                <div class="text-center mb-4">
+                  <div class="profile-image-container">
+                    <img id="profilePreview" src="{{ Auth::user()->getAvatarUrl(150, 'ui-avatars') }}" alt="Profile Picture" class="profile-image">
+                    <label for="profilePicture" class="profile-image-label">
+                      <i class="bi bi-camera-fill me-1"></i> Change Photo
+                    </label>
+                    <input type="file" id="profilePicture" name="profile" class="profile-image-upload" accept="image/*" onchange="previewProfilePicture(event)">
+                  </div>
+                </div>
+                
                 <div class="mb-3">
                   <label for="name" class="form-label">Name</label>
                   <input type="text" class="form-control" id="name" name="name" value="{{ Auth::user()->name }}">
@@ -263,10 +268,6 @@
                 </div>
               </form>
             </div>
-            <div class="modal-footer justify-content-center">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="width: 125px;">Cancel</button>
-              <button type="button" class="btn btn-primary" style="width: 125px;">Save</button>
-            </div>
           </div>
         </div>
       </div>
@@ -295,11 +296,44 @@
         function previewProfilePicture(event) {
           const input = event.target;
           const reader = new FileReader();
+          
+          // Show loading state
+          const preview = document.getElementById('profilePreview');
+          preview.style.opacity = '0.5';
+          
           reader.onload = function () {
-            const preview = document.getElementById('profilePreview');
+            // Update preview image
             preview.src = reader.result;
+            preview.style.opacity = '1';
+            
+            // Validate image dimensions and size
+            const img = new Image();
+            img.onload = function() {
+              if (img.width < 100 || img.height < 100) {
+                alert('Image is too small. Please choose an image that is at least 100x100 pixels.');
+              }
+            };
+            img.src = reader.result;
           };
+          
+          // Handle errors
+          reader.onerror = function() {
+            alert('Error reading file. Please try again.');
+            preview.style.opacity = '1';
+          };
+          
           if (input.files && input.files[0]) {
+            // Check file size
+            if (input.files[0].size > 2 * 1024 * 1024) {
+              alert('Image is too large. Maximum size is 2MB.');
+              return;
+            }
+            
+            // Show file name
+            const fileName = input.files[0].name;
+            const fileSize = Math.round(input.files[0].size / 1024); // KB
+            console.log(`Selected file: ${fileName} (${fileSize}KB)`);
+            
             reader.readAsDataURL(input.files[0]);
           }
         }
