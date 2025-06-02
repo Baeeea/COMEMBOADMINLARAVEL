@@ -36,10 +36,15 @@ class AuthController extends Controller
             'email' => 'The provided credentials do not match our records.',
         ]);
     }
-    public function logout()
+    public function logout(Request $request)
     {
         Auth::logout();
-        return redirect()->route('login'); // or wherever you want to redirect after logout
+        
+        // Invalidate the session and regenerate CSRF token for security
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        
+        return redirect()->route('login.form')->with('message', 'You have been logged out successfully.');
     }
     public function showLoginForm()
 {
