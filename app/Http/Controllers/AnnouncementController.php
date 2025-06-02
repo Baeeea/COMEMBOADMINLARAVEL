@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Cache;
 
 class AnnouncementController extends Controller
 {
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
-
     public function index()
     {
         $announcements = Announcement::orderBy('createdAt', 'desc')->get();
@@ -40,7 +35,6 @@ class AnnouncementController extends Controller
             $data['image'] = $filename;
         }        Announcement::create($data);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('announcements')->with('success', 'Announcement created successfully!');
     }public function edit($id)
     {
@@ -77,7 +71,6 @@ class AnnouncementController extends Controller
             $data['image'] = $filename;
         }        $announcement->update($data);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('announcements')->with('success', 'Announcement updated successfully!');
     }
 
@@ -89,10 +82,8 @@ class AnnouncementController extends Controller
         if ($announcement->image && file_exists(public_path('uploads/announcements/' . $announcement->image))) {
             unlink(public_path('uploads/announcements/' . $announcement->image));
         }
-        
-        $announcement->delete();
+          $announcement->delete();
 
-        $this->triggerLiveUpdate();
         return redirect()->route('announcements')->with('success', 'Announcement deleted successfully!');
     }
 }

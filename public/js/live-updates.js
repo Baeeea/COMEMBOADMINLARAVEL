@@ -234,14 +234,16 @@ class LiveUpdateManager {
     }
 }
 
+// Auto-refresh functionality has been disabled
 // Initialize live updates when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.liveUpdateManager = new LiveUpdateManager();
+    console.log('Live updates disabled - auto-refresh functionality has been turned off');
+    // window.liveUpdateManager = new LiveUpdateManager();
 });
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
-    if (window.liveUpdateManager) {
-        window.liveUpdateManager.disconnect();
-    }
+    // if (window.liveUpdateManager) {
+    //     window.liveUpdateManager.disconnect();
+    // }
 });

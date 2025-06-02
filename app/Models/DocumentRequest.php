@@ -44,6 +44,45 @@ class DocumentRequest extends Model
         'validIDBack',
         'image',
         'image2',
+        'image3',
+        'photo_store',
+        'photo_current_house', 
+        'photo_renovation',
+        'photo_proof',
+        'child_name'
+    ];
+
+    /**
+     * The attributes that should be cast to native types.
+     */
+    protected $casts = [
+        'birthdate' => 'date',
+        'age' => 'integer',
+        'contact_number' => 'integer',
+        'years_residency' => 'integer',
+        'timestamp' => 'datetime'
+    ];
+
+    /**
+     * The attributes that should be hidden for arrays.
+     */
+    protected $hidden = [
+        'photo_store',
+        'photo_current_house',
+        'photo_renovation',
+        'photo_proof',
+        'validIDFront',
+        'validIDBack',
+        'image',
+        'image2',
         'image3'
     ];
+
+    /**
+     * Get the resident associated with this document request.
+     */
+    public function resident()
+    {
+        return $this->belongsTo(Resident::class, 'user_id', 'user_id');
+    }
 }

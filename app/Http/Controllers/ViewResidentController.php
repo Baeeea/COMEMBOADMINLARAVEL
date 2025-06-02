@@ -15,13 +15,11 @@ class ViewResidentController extends Controller
      */
     public function show($id)
     {
-        // Find resident by id (primary key)
-        $resident = Resident::findOrFail($id);
-
-        // Debug: Log resident data
+        // Find resident by user_id
+        $resident = Resident::where('user_id', $id)->firstOrFail();        // Debug: Log resident data
         Log::info('ViewResidentController - Resident data:', [
             'id_parameter' => $id,
-            'resident_id' => $resident->id,
+            'resident_id' => $resident->user_id,
             'firstname' => $resident->firstname,
             'lastname' => $resident->lastname,
             'email' => $resident->email,
@@ -49,10 +47,8 @@ class ViewResidentController extends Controller
                     'message' => 'Validation failed',
                     'errors' => $validator->errors()
                 ], 422);
-            }
-
-            // Find the resident
-            $resident = Resident::findOrFail($id);
+            }            // Find the resident
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             $updatedFields = [];
 
@@ -86,19 +82,7 @@ class ViewResidentController extends Controller
                     'file_size' => strlen($idBackData),
                     'mime_type' => $idBackFile->getMimeType()
                 ]);            }            // Save the resident with BLOB data
-            $resident->save();
-
-            // Trigger real-time database update
-            $this->triggerLiveUpdate('residents', 'image_upload', [
-                'resident_id' => $id,
-                'updated_fields' => $updatedFields
-            ]);
-
-            // Trigger real-time database update
-            $this->triggerLiveUpdate('residents', 'image_upload', [
-                'resident_id' => $id,
-                'updated_fields' => $updatedFields
-            ]);
+            $resident->save();            // Image upload completed
 
             return response()->json([
                 'success' => true,
@@ -128,11 +112,10 @@ class ViewResidentController extends Controller
 
     /**
      * RESTful API endpoint to serve ID images from BLOB data
-     */
-    public function serveIDImage($id, $type)
+     */    public function serveIDImage($id, $type)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
             
             $imageData = null;
             $contentType = 'image/jpeg'; // Default content type
@@ -179,23 +162,22 @@ class ViewResidentController extends Controller
 
     /**
      * RESTful API endpoint to get ID images metadata
-     */
-    public function getIDImages($id)
+     */    public function getIDImages($id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'id_front' => [
                         'exists' => !empty($resident->id_front),
-                        'url' => !empty($resident->id_front) ? route('residents.id.image', ['id' => $resident->id, 'type' => 'front']) : null,
+                        'url' => !empty($resident->id_front) ? route('residents.id.image', ['id' => $resident->user_id, 'type' => 'front']) : null,
                         'size' => !empty($resident->id_front) ? strlen($resident->id_front) : 0
                     ],
                     'id_back' => [
                         'exists' => !empty($resident->id_back),
-                        'url' => !empty($resident->id_back) ? route('residents.id.image', ['id' => $resident->id, 'type' => 'back']) : null,
+                        'url' => !empty($resident->id_back) ? route('residents.id.image', ['id' => $resident->user_id, 'type' => 'back']) : null,
                         'size' => !empty($resident->id_back) ? strlen($resident->id_back) : 0
                     ]
                 ]
@@ -216,8 +198,7 @@ class ViewResidentController extends Controller
 
     /**
      * RESTful API endpoint to delete ID images
-     */
-    public function deleteIDImage(Request $request, $id)
+     */    public function deleteIDImage(Request $request, $id)
     {
         try {
             $type = $request->input('type'); // 'front', 'back', or 'both'
@@ -229,7 +210,7 @@ class ViewResidentController extends Controller
                 ], 422);
             }
 
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
             $deletedFields = [];
 
             if ($type === 'front' || $type === 'both') {
@@ -270,15 +251,24 @@ class ViewResidentController extends Controller
     {
         // This method uses the same logic as uploadIDImages but for PUT requests
         return $this->uploadIDImages($request, $id);
-    }
-
-    /**
+    }    /**
      * Toggle verification status of a resident
-     */
-    public function toggleVerification(Request $request, $id)
+     */    public function toggleVerification(Request $request, $id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            // Log the incoming parameters for debugging
+            Log::info('toggleVerification called', [
+                'id_parameter' => $id,
+                'request_data' => $request->all(),
+                'user_id' => auth()->id()
+            ]);
+
+            // Validate that ID is not null
+            if (empty($id)) {
+                throw new \Exception('Resident ID is required and cannot be empty');
+            }
+
+            $resident = Resident::where('user_id', $id)->firstOrFail();
             
             // Toggle status between "Not Verified" and "Verified"
             if ($resident->status === 'Not Verified') {
@@ -288,19 +278,10 @@ class ViewResidentController extends Controller
                 $resident->status = 'Not Verified';
                 $message = 'Resident verification has been revoked';
             }
-              $resident->save();
-
-            Log::info('Resident verification status updated', [
+              $resident->save();Log::info('Resident verification status updated', [
                 'resident_id' => $id,
                 'new_status' => $resident->status,
                 'updated_by' => auth()->id()
-            ]);
-
-            // Trigger real-time database update
-            $this->triggerLiveUpdate('residents', 'verification_status', [
-                'resident_id' => $id,
-                'new_status' => $resident->status,
-                'message' => $message
             ]);
 
             // Return JSON response for AJAX requests
@@ -329,36 +310,6 @@ class ViewResidentController extends Controller
                 ], 500);
             }
 
-            return redirect()->back()->with('error', 'Error updating verification status. Please try again.');
-        }
-    }
-
-    /**
-     * Trigger live update notification for real-time database changes
-     */
-    private function triggerLiveUpdate($table = 'general', $action = 'update', $details = [])
-    {
-        $timestamp = time();
-        
-        // Set general database update
-        Cache::put('last_database_update', $timestamp, 3600);
-        
-        // Set specific table update
-        Cache::put("table_{$table}_last_update", $timestamp, 3600);
-        
-        // Store update details
-        Cache::put('database_update_details', [
-            'table' => $table,
-            'action' => $action,
-            'timestamp' => $timestamp,
-            'details' => $details
-        ], 3600);
-        
-        Log::info("Real-time database update triggered", [
-            'table' => $table,
-            'action' => $action,
-            'timestamp' => $timestamp,
-            'details' => $details
-        ]);
+            return redirect()->back()->with('error', 'Error updating verification status. Please try again.');        }
     }
 }

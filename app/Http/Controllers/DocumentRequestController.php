@@ -3,177 +3,501 @@
 namespace App\Http\Controllers;
 
 use App\Models\DocumentRequest;
-use Illuminate\Http\Request; // Add this import statement
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DocumentRequestController extends Controller
 {
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
     public function index()
     {
         $totalRequests = DocumentRequest::count();
-        $requests = DocumentRequest::select('firstname', 'lastname', 'middle_name', 'document_type', 'timestamp', 'status')->get();
+        
+        // Join with residents table to get resident names and id images using user_id, rest from documentrequest
+        $requests = DocumentRequest::leftJoin('residents', 'documentrequest.user_id', '=', 'residents.user_id')
+            ->select(
+                'documentrequest.id', 
+                'documentrequest.document_type', 
+                'documentrequest.created_at', 
+                'documentrequest.status',
+                'documentrequest.user_id',
+                // Get names and id images from residents table only
+                'residents.first_name as firstname',
+                'residents.last_name as lastname',
+                'residents.id_front',
+                'residents.id_back'
+            )
+            ->get();
+            
         return view('documentrequest', compact('totalRequests', 'requests'));
     }
+
     public function fetchData(Request $request)
-{
-    $status = $request->query('status');
-
-    // Now that we've added the id column, we can explicitly select it
-    $query = DocumentRequest::select('id', 'firstname', 'lastname', 'middle_name', 'document_type', 'timestamp', 'status');
-
-    if ($status && $status !== 'all') {
-        $query->where('status', $status);
-    }
-
-    $requests = $query->get();
-
-    return response()->json($requests);
-}
-public function store(Request $request)
-{
-    // Access request data
-    $data = $request->all();
-    // ...
-}
-
-public function edit($id)
-{
-    // Find the document request by ID - now using the new id column
-    $document = DocumentRequest::findOrFail($id);
-
-    // Return the edit view with the document data
-    return view('editdocument', compact('document'));
-}
-
-public function update(Request $request, $id)
-{
-    // Find the document request
-    $document = DocumentRequest::findOrFail($id);
-
-    // Update basic information
-    $document->firstname = $request->firstname;
-    $document->lastname = $request->lastname;
-    $document->middle_name = $request->middle_name;
-
-    // Handle birthdate - ensure it's not null (use current date as default if empty)
-    $document->birthdate = $request->birthdate ?: date('Y-m-d');
-
-    // Handle age - set to 0 if null
-    $document->age = $request->age ?: 0;
-
-    // Handle contact number to accept up to 10 digits
-    if ($request->contact_number) {
-        // Clean the phone number to contain only digits
-        $cleanPhone = preg_replace('/[^0-9]/', '', $request->contact_number);
-
-        // Make sure we only store up to 10 digits to prevent integer overflow
-        // Most Philippine mobile numbers are 10 digits (without the leading zero)
-        if (strlen($cleanPhone) > 10) {
-            $cleanPhone = substr($cleanPhone, -10);  // Keep only the last 10 digits
-        }
-
-        // Try to save as integer, but if too large, save as largest possible integer
+    {
         try {
-            $document->contact_number = (int)$cleanPhone;
+            $status = $request->query('status');
+
+            // Join with residents table to get resident names and id images using user_id, rest from documentrequest
+            $query = DocumentRequest::leftJoin('residents', 'documentrequest.user_id', '=', 'residents.user_id')
+                ->select(
+                    'documentrequest.id', 
+                    'documentrequest.document_type', 
+                    DB::raw('CONVERT(documentrequest.created_at USING utf8) as timestamp'),
+                    DB::raw('CONVERT(documentrequest.status USING utf8) as status'),
+                    'documentrequest.user_id',
+                    DB::raw('CONVERT(residents.first_name USING utf8) as firstname'),
+                    DB::raw('CONVERT(residents.last_name USING utf8) as lastname')
+                );
+
+            // Enhanced status filtering with normalization
+            if ($status && $status !== 'all') {
+                $normalizedStatus = mb_strtolower(trim($status));
+                switch ($normalizedStatus) {
+                    case 'in process':
+                    case 'in-process':
+                    case 'inprocess':
+                        $query->whereRaw('LOWER(TRIM(documentrequest.status)) IN (?, ?, ?)', 
+                            ['in process', 'in-process', 'inprocess']);
+                        break;
+                    default:
+                        $query->whereRaw('LOWER(TRIM(documentrequest.status)) = ?', [$normalizedStatus]);
+                        break;
+                }
+            }
+
+            $requests = $query->orderBy('documentrequest.created_at', 'desc')->get();
+            
+            // Ensure proper encoding for all string values
+            $requests = $requests->map(function ($item) {
+                $item->firstname = mb_convert_encoding($item->firstname ?? '', 'UTF-8', 'UTF-8');
+                $item->lastname = mb_convert_encoding($item->lastname ?? '', 'UTF-8', 'UTF-8');
+                $item->document_type = mb_convert_encoding($item->document_type ?? '', 'UTF-8', 'UTF-8');
+                $item->status = mb_convert_encoding($item->status ?? '', 'UTF-8', 'UTF-8');
+                return $item;
+            });
+
+            return response()->json($requests, 200, [
+                'Content-Type' => 'application/json;charset=UTF-8'
+            ]);
         } catch (\Exception $e) {
-            // If conversion fails, use PHP_INT_MAX (maximum integer value)
-            $document->contact_number = PHP_INT_MAX;
+            \Log::error('Error in fetchData: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(
+                ['error' => 'Failed to fetch data: ' . $e->getMessage()],
+                500,
+                ['Content-Type' => 'application/json;charset=UTF-8']
+            );
         }
     }
 
-    // Handle other fields with possible NOT NULL constraints
-    $document->home_address = $request->home_address ?: '';
-    $document->years_residency = $request->years_residency ?: '0';
-    $document->civil_status = $request->civil_status ?: 'Single';
-    $document->local_employment = $request->local_employment ?: '';
-
-    // Business information - use empty strings instead of null
-    $document->business_name = $request->business_name ?: '';
-    $document->business_type = $request->business_type ?: '';
-    $document->business_owner = $request->business_owner ?: '';
-    $document->business_address = $request->business_address ?: '';
-
-    // Document information
-    $document->document_type = $request->document_type;
-    $document->purpose = $request->purpose;
-    $document->project_description = $request->project_description;
-    $document->status = $request->status;
-    $document->status_explanation = $request->status_explanation;
-
-    // Handle image uploads
-    if ($request->hasFile('validIDFront')) {
-        $validIDFront = $request->file('validIDFront');
-        $filename = 'validID_front_' . time() . '.' . $validIDFront->getClientOriginalExtension();
-        $validIDFront->move(public_path('uploads/documents'), $filename);
-        $document->validIDFront = 'uploads/documents/' . $filename;
+    public function store(Request $request)
+    {
+        // Access request data
+        $data = $request->all();
+        // ...
     }
 
-    if ($request->hasFile('validIDBack')) {
-        $validIDBack = $request->file('validIDBack');
-        $filename = 'validID_back_' . time() . '.' . $validIDBack->getClientOriginalExtension();
-        $validIDBack->move(public_path('uploads/documents'), $filename);
-        $document->validIDBack = 'uploads/documents/' . $filename;
+    public function edit($id)
+    {
+        // Find the document request by ID with resident relationship
+        $document = DocumentRequest::with('resident')->findOrFail($id);
+        
+        // Create a data object that merges document request data with resident data
+        // Prioritize resident table data over document request data for user information
+        $data = new \stdClass();
+        
+        // Document-specific fields (always from document request)
+        $data->id = $document->id;
+        $data->document_type = $document->document_type;
+        $data->purpose = $document->purpose;
+        $data->status = $document->status;
+        $data->status_explanation = $document->status_explanation;
+        $data->project_description = $document->project_description;
+        $data->validIDFront = $document->validIDFront;
+        $data->validIDBack = $document->validIDBack;
+        $data->image = $document->image;
+        $data->image2 = $document->image2;
+        $data->image3 = $document->image3;
+        $data->created_at = $document->created_at;
+        $data->updated_at = $document->updated_at;
+        
+        // Business-related fields (from document request)
+        $data->business_name = $document->business_name;
+        $data->business_type = $document->business_type;
+        $data->business_owner = $document->business_owner;
+        $data->business_address = $document->business_address;
+        $data->local_employment = $document->local_employment;
+        
+        // Additional photo fields for specific document types
+        $data->photo_store = $document->photo_store ?? '';
+        $data->photo_current_house = $document->photo_current_house ?? '';
+        $data->photo_renovation = $document->photo_renovation ?? '';
+        $data->photo_proof = $document->photo_proof ?? '';
+        $data->child_name = $document->child_name ?? '';
+        
+        // User information: prioritize resident data if available, fallback to document data
+        if ($document->resident) {
+            $resident = $document->resident;
+            $data->firstname = $resident->first_name ?? $document->firstname;
+            $data->lastname = $resident->last_name ?? $document->lastname;
+            $data->middle_name = $resident->middle_name ?? $document->middle_name;
+            $data->birthdate = $resident->birthdate ?? $document->birthdate;
+            $data->age = $resident->age ?? $document->age;
+            $data->home_address = $resident->home_address ?? $document->home_address;
+            $data->contact_number = $resident->contact_number ?? $document->contact_number;
+            $data->years_residency = $resident->years_residency ?? $document->years_residency;
+            $data->civil_status = $resident->civil_status ?? $document->civil_status;
+            $data->id_front = $resident->id_front ?? null;
+            $data->id_back = $resident->id_back ?? null;
+        } else {
+            $data->firstname = $document->firstname;
+            $data->lastname = $document->lastname;
+            $data->middle_name = $document->middle_name;
+            $data->birthdate = $document->birthdate;
+            $data->age = $document->age;
+            $data->home_address = $document->home_address;
+            $data->contact_number = $document->contact_number;
+            $data->years_residency = $document->years_residency;
+            $data->civil_status = $document->civil_status;
+            $data->id_front = null;
+            $data->id_back = null;
+        }
+
+        // Return the edit view with the merged data
+        return view('editdocument', ['document' => $data]);
     }
 
-    if ($request->hasFile('image')) {
-        $image = $request->file('image');
-        $filename = 'image_' . time() . '.' . $image->getClientOriginalExtension();
-        $image->move(public_path('uploads/documents'), $filename);
-        $document->image = 'uploads/documents/' . $filename;
-    }
+    public function update(Request $request, $id)
+    {
+        try {
+            \Log::info('Document update started', ['id' => $id]);
+            
+            // Find the document request
+            $document = DocumentRequest::findOrFail($id);
 
-    if ($request->hasFile('image2')) {
-        $image2 = $request->file('image2');
-        $filename = 'image2_' . time() . '.' . $image2->getClientOriginalExtension();
-        $image2->move(public_path('uploads/documents'), $filename);
-        $document->image2 = 'uploads/documents/' . $filename;
-    }
+            // Only validate the fields that are actually being submitted in the form
+            $validatedData = $request->validate([
+                'status' => 'required|string|in:pending,inprocess,completed,rejected',
+                'status_explanation' => 'nullable|string'
+            ]);
 
-    if ($request->hasFile('image3')) {
-        $image3 = $request->file('image3');
-        $filename = 'image3_' . time() . '.' . $image3->getClientOriginalExtension();
-        $image3->move(public_path('uploads/documents'), $filename);
-        $document->image3 = 'uploads/documents/' . $filename;
-    }
+            // Update only the status field (which is the only editable field in the form)
+            $document->status = $request->status;
+            if ($request->has('status_explanation')) {
+                $document->status_explanation = $request->status_explanation;
+            }
 
-    // Save the changes
-    $document->save();
+            // Save the changes
+            if ($document->save()) {
+                \Log::info('Document saved successfully', ['id' => $id]);
+                
+                return redirect()->route('documentrequest')
+                               ->with('success', 'Document request status updated successfully');
+            } else {
+                throw new \Exception('Failed to save document request');
+            }
 
-    $this->triggerLiveUpdate();
-    // Redirect back to the document requests page with a success message
-    return redirect()->route('documentrequest')->with('success', 'Document request updated successfully');
-}
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            \Log::error('Document request not found:', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
 
-/**
- * Remove the specified document request from storage.
- *
- * @param  int  $id
- * @return \Illuminate\Http\RedirectResponse
- */
-public function destroy($id)
-{
-    // Find the document request by ID
-    $document = DocumentRequest::findOrFail($id);
+            return redirect()->route('documentrequest')
+                           ->with('error', 'Document request not found');
 
-    // Delete any uploaded files if they exist
-    $fileFields = ['validIDFront', 'validIDBack', 'image', 'image2', 'image3'];
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error updating document request:', [
+                'id' => $id,
+                'errors' => $e->errors()
+            ]);
 
-    foreach ($fileFields as $field) {
-        if (!empty($document->$field) && file_exists(public_path($document->$field))) {
-            unlink(public_path($document->$field));
+            return redirect()->back()
+                           ->withErrors($e->errors())
+                           ->withInput();
+
+        } catch (\Exception $e) {
+            \Log::error('Error updating document request:', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()
+                           ->with('error', 'Failed to update document request: ' . $e->getMessage())
+                           ->withInput();
         }
     }
 
-    // Delete the document request
-    $document->delete();
+    /**
+     * Remove the specified document request from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy($id)
+    {
+        // Find the document request by ID
+        $document = DocumentRequest::findOrFail($id);
 
-    $this->triggerLiveUpdate();
-    // Redirect back to the document requests page with a success message
-    return redirect()->route('documentrequest')->with('success', 'Document request deleted successfully');
-}
-}
+        // No need to delete physical files since we're using BLOB data
+        // Just delete the document request and all its BLOB data will be removed from the database
+        $document->delete();
 
+        // Redirect back to the document requests page with a success message
+        return redirect()->route('documentrequest')->with('success', 'Document request deleted successfully');
+    }
+
+    // Debug method to test data fetching
+    public function debug()
+    {
+        try {
+            // Test basic query without joins
+            $basicData = DocumentRequest::select('id', 'document_type', 'created_at', 'status', 'user_id')->limit(5)->get();
+            
+            // Test with join
+            $joinData = DocumentRequest::leftJoin('residents', 'documentrequest.user_id', '=', 'residents.user_id')
+                ->select(
+                    'documentrequest.id', 
+                    'documentrequest.document_type', 
+                    'documentrequest.created_at as timestamp', 
+                    'documentrequest.status',
+                    'documentrequest.user_id',
+                    'residents.first_name as firstname',
+                    'residents.last_name as lastname',
+                    'residents.id_front',
+                    'residents.id_back'
+                )
+                ->limit(5)
+                ->get();
+            
+            return response()->json([
+                'basic_data' => $basicData,
+                'join_data' => $joinData,
+                'table_count' => DocumentRequest::count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get photo_store from database as BLOB data
+     */
+    public function getPhotoStore($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->photo_store) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->photo_store);
+        
+        return response($document->photo_store)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get photo_current_house from database as BLOB data
+     */
+    public function getPhotoCurrentHouse($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->photo_current_house) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->photo_current_house);
+        
+        return response($document->photo_current_house)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get photo_renovation from database as BLOB data
+     */
+    public function getPhotoRenovation($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->photo_renovation) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->photo_renovation);
+        
+        return response($document->photo_renovation)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get photo_proof from database as BLOB data
+     */
+    public function getPhotoProof($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->photo_proof) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->photo_proof);
+        
+        return response($document->photo_proof)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get validIDFront from database as BLOB data
+     */
+    public function getValidIDFront($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->validIDFront) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->validIDFront);
+        
+        return response($document->validIDFront)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get validIDBack from database as BLOB data
+     */
+    public function getValidIDBack($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->validIDBack) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->validIDBack);
+        
+        return response($document->validIDBack)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get image from database as BLOB data
+     */
+    public function getImage($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->image) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->image);
+        
+        return response($document->image)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get image2 from database as BLOB data
+     */
+    public function getImage2($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->image2) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->image2);
+        
+        return response($document->image2)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get image3 from database as BLOB data
+     */
+    public function getImage3($id)
+    {
+        $document = DocumentRequest::findOrFail($id);
+        
+        if (!$document->image3) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->image3);
+        
+        return response($document->image3)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get id_front from residents table as BLOB data
+     */
+    public function getIdFront($id)
+    {
+        $document = DocumentRequest::with('resident')->findOrFail($id);
+        
+        if (!$document->resident || !$document->resident->id_front) {
+            return response()->json(['error' => 'ID Front photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->resident->id_front);
+        
+        return response($document->resident->id_front)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+
+    /**
+     * Get id_back from residents table as BLOB data
+     */
+    public function getIdBack($id)
+    {
+        $document = DocumentRequest::with('resident')->findOrFail($id);
+        
+        if (!$document->resident || !$document->resident->id_back) {
+            return response()->json(['error' => 'ID Back photo not found'], 404);
+        }
+
+        // Detect MIME type from binary data
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($document->resident->id_back);
+        
+        return response($document->resident->id_back)
+            ->header('Content-Type', $mimeType ?: 'image/jpeg')
+            ->header('Cache-Control', 'public, max-age=3600');
+    }
+}

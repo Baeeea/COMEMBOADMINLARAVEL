@@ -79,26 +79,28 @@ class DashboardController extends Controller
     {
         try {
             $documentRequests = DB::table('documentrequest')
+                ->join('residents', 'documentrequest.user_id', '=', 'residents.user_id')
                 ->select(
-                    'firstname',
-                    'lastname',
+                    'residents.first_name as firstname',
+                    'residents.last_name as lastname',
                     DB::raw("'Document Request' as category"),
-                    'document_type as type',
-                    'timestamp'
+                    'documentrequest.document_type as type',
+                    'documentrequest.created_at as timestamp'
                 )
-                ->orderBy('timestamp', 'desc')
+                ->orderBy('documentrequest.created_at', 'desc')
                 ->limit(5)
                 ->get();
 
             $complaintRequests = DB::table('complaintrequests')
+                ->join('residents', 'complaintrequests.user_id', '=', 'residents.user_id')
                 ->select(
-                    'firstname',
-                    'lastname',
+                    'residents.first_name as firstname',
+                    'residents.last_name as lastname',
                     DB::raw("'Complaint' as category"),
-                    'complaint_type as type',
-                    'timestamp'
+                    'complaintrequests.complaint_type as type',
+                    'complaintrequests.created_at as timestamp'
                 )
-                ->orderBy('timestamp', 'desc')
+                ->orderBy('complaintrequests.created_at', 'desc')
                 ->limit(5)
                 ->get();
 

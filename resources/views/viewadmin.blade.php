@@ -226,8 +226,7 @@
                 <div class="mb-3">
                   <label for="role" class="form-label">Role</label>
                   <select class="form-control" id="role" name="role">
-                    <option value="admin" {{ (($admin ?? Auth::user())->role == 'admin') ? 'selected' : '' }}>Admin</option>
-                    <option value="super_admin" {{ (($admin ?? Auth::user())->role == 'super_admin') ? 'selected' : '' }}>Super Admin</option>
+                    <option value="admin" selected>Admin</option>
                   </select>
                 </div>
                 <div class="mb-3">
@@ -281,7 +280,7 @@
       </div>
       <!-- Log Out Modal Ends -->
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-      <script src="{{ asset('js/live-updates.js') }}"></script>
+      {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
       <script>
         function previewProfilePicture(event) {
           const input = event.target;

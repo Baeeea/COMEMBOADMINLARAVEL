@@ -12,8 +12,8 @@ class ComplaintRequest extends Model
     // Explicit table name
     protected $table = 'complaintrequests';
 
-    // Set user_id as primary key
-    protected $primaryKey = 'user_id';
+    // Use default 'id' as primary key
+    // protected $primaryKey = 'user_id'; // Removed to allow multiple complaints per user
 
     // Fillable fields for mass assignment
     protected $fillable = [
@@ -31,7 +31,34 @@ class ComplaintRequest extends Model
         'phase_status',
         'status_explanation',
         'sentiment',
-        'created_at'
+        'created_at',
+        'photo',
+        'video',
+        // Additional fields for specific complaint types
+        'items_stolen',
+        'items_value',
+        'business_name',
+        'vehicle_details'
+    ];
+    
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'created_at' => 'datetime',
+        'date_occurrence' => 'datetime',
+    ];
+    
+    /**
+     * Specify attributes excluded from the model's JSON form.
+     *
+     * @var array
+     */
+    protected $hidden = [
+        'photo',
+        'video',
     ];
 
     // Use only created_at timestamp (updated_at column removed)

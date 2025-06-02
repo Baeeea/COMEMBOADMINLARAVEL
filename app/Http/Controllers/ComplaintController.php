@@ -8,19 +8,16 @@ use App\Services\SentimentAnalysisService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class ComplaintController extends Controller
 {
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
     public function index()
     {
         $complaintCount = ComplaintRequest::count();
         $complaints = ComplaintRequest::with(['resident:user_id,first_name,last_name,middle_name'])
             ->select(
-                'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
+                 'id', 'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
                 'explanation'
             )->get();
 
@@ -55,7 +52,7 @@ class ComplaintController extends Controller
 
         $query = ComplaintRequest::with(['resident:user_id,first_name,last_name,middle_name'])
             ->select(
-                'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
+                'id', 'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
                 'explanation'
             );
 
@@ -102,9 +99,9 @@ class ComplaintController extends Controller
         ]);
     }
 
-    public function edit($user_id)
+    public function edit($id)
     {
-        $complaint = ComplaintRequest::where('user_id', $user_id)->firstOrFail();            // Analyze sentiment if explanation exists
+        $complaint = ComplaintRequest::findOrFail($id);            // Analyze sentiment if explanation exists
             if (!empty($complaint->explanation)) {
                 try {
                     $sentimentService = new SentimentAnalysisService();
@@ -147,7 +144,8 @@ class ComplaintController extends Controller
                         $complaint->save();
 
                     Log::info("Complaint sentiment analyzed", [
-                        'user_id' => $user_id,
+                        'id' => $id,
+                        'user_id' => $complaint->user_id,
                         'sentiment' => $result['sentiment'],
                         'phase_status' => $complaint->phase_status
                     ]);
@@ -155,7 +153,8 @@ class ComplaintController extends Controller
             } catch (\Exception $e) {
                 Log::error("Error analyzing sentiment", [
                     'error' => $e->getMessage(),
-                    'user_id' => $user_id
+                    'id' => $id,
+                    'user_id' => $complaint->user_id ?? 'unknown'
                 ]);
                 // Continue without sentiment analysis if it fails
             }
@@ -164,10 +163,10 @@ class ComplaintController extends Controller
         return view('editcomplaint', compact('complaint'));
     }
 
-    public function update(Request $request, $user_id)
+    public function update(Request $request, $id)
     {
         try {
-            $complaint = ComplaintRequest::where('user_id', $user_id)->firstOrFail();
+            $complaint = ComplaintRequest::findOrFail($id);
 
             // Validate the request
             $request->validate([
@@ -181,7 +180,12 @@ class ComplaintController extends Controller
                 'location_occurrence' => 'nullable|string|max:200',
                 'photo' => 'nullable|file|image|max:2048',
                 'video' => 'nullable|file|mimes:mp4,avi,mov|max:10240',
-                'phases' => 'nullable|string|max:100'
+                'phases' => 'nullable|string|max:100',
+                // Type-specific fields
+                'items_stolen' => 'nullable|string',
+                'items_value' => 'nullable|string',
+                'business_name' => 'nullable|string|max:200',
+                'vehicle_details' => 'nullable|string'
             ]);
 
             // Analyze sentiment if description is updated
@@ -190,7 +194,7 @@ class ComplaintController extends Controller
                 $sentimentService = new SentimentAnalysisService();
                 $result = $sentimentService->analyzeSentiment($request->description);
                 $sentiment = $result['sentiment'];
-                Log::info("Sentiment analysis result for user_id {$user_id}", [
+                Log::info("Sentiment analysis result for complaint {$id}", [
                     'sentiment' => $sentiment,
                     'scores' => $result['scores'] ?? null,
                     'matched_tokens' => $result['matched_tokens'] ?? null
@@ -205,17 +209,19 @@ class ComplaintController extends Controller
             };
 
             // Handle file uploads
-            $photoPath = $complaint->photo;
-            $videoPath = $complaint->video;
+            $photoData = $complaint->photo;
+            $videoData = $complaint->video;
 
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
-                $photoPath = $photo->store('complaint_photos', 'public');
+                // Store directly as binary data in database
+                $photoData = file_get_contents($photo->getPathname());
             }
 
             if ($request->hasFile('video')) {
                 $video = $request->file('video');
-                $videoPath = $video->store('complaint_videos', 'public');
+                // Store directly as binary data in database
+                $videoData = file_get_contents($video->getPathname());
             }
 
             // Update the editable fields with the new simplified structure
@@ -226,16 +232,22 @@ class ComplaintController extends Controller
                 'frequency' => $request->frequency,
                 'people_involved' => $request->people_involved,
                 'location_occurrence' => $request->location_occurrence,
-                'photo' => $photoPath,
-                'video' => $videoPath,
+                'photo' => $photoData,
+                'video' => $videoData,
                 'phases' => $request->phases,
                 'phase_status' => $request->phase_status,
                 'explanation' => $request->explanation,
-                'sentiment' => $sentiment
+                'sentiment' => $sentiment,
+                // Type-specific fields
+                'items_stolen' => $request->items_stolen,
+                'items_value' => $request->items_value,
+                'business_name' => $request->business_name,
+                'vehicle_details' => $request->vehicle_details
             ];
 
             Log::info("Updating complaint", [
-                'user_id' => $user_id,
+                'id' => $id,
+                'user_id' => $complaint->user_id,
                 'update_data' => $update,
                 'original_sentiment' => $complaint->sentiment,
                 'new_sentiment' => $sentiment
@@ -243,8 +255,7 @@ class ComplaintController extends Controller
 
             $complaint->update($update);
 
-            $this->triggerLiveUpdate();
-            return redirect()->route('complaint')->with('success', 'Complaint updated successfully.');
+        return redirect()->route('complaint')->with('success', 'Complaint updated successfully.');
         } catch (\Exception $e) {
             Log::error('Error updating complaint: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error updating complaint: ' . $e->getMessage());
@@ -272,11 +283,10 @@ class ComplaintController extends Controller
                     default => 'phase2', // Set to additional requirements for neutral
                 };
 
-                $updated = ComplaintRequest::where('user_id', $complaint->user_id)
-                    ->update([
-                        'sentiment' => $result['sentiment'],
-                        'phase_status' => $newPhaseStatus
-                    ]);
+                // Update the current complaint object directly
+                $complaint->sentiment = $result['sentiment'];
+                $complaint->phase_status = $newPhaseStatus;
+                $updated = $complaint->save();
                 if ($updated) {
                     $updatedCount++;
                 }
@@ -308,13 +318,11 @@ class ComplaintController extends Controller
         }
     }
 
-    public function destroy($user_id)
+    public function destroy($id)
     {
         try {
-            $complaint = ComplaintRequest::where('user_id', $user_id)->firstOrFail();
+            $complaint = ComplaintRequest::findOrFail($id);
             $complaint->delete();
-
-            $this->triggerLiveUpdate();
 
             // Check if request is AJAX
             if (request()->ajax()) {
@@ -329,6 +337,149 @@ class ComplaintController extends Controller
 
             return redirect()->route('complaint')->with('error', 'Error deleting complaint.');
         }
+    }
+
+    /**
+     * Get the photo binary data for a complaint
+     * 
+     * @param int $id The complaint ID
+     * @return \Illuminate\Http\Response
+     */
+    public function getPhoto($id)
+    {
+        try {
+            $complaint = ComplaintRequest::findOrFail($id);
+            
+            // Check if photo exists
+            if (empty($complaint->photo)) {
+                return response()->json(['error' => 'No photo available'], 404);
+            }
+            
+            // If photo is stored as a file path rather than blob
+            if (is_string($complaint->photo) && !$this->isBinary($complaint->photo)) {
+                if (Storage::disk('public')->exists($complaint->photo)) {
+                    return response()->file(Storage::disk('public')->path($complaint->photo));
+                } else {
+                    return response()->json(['error' => 'Photo file not found'], 404);
+                }
+            }
+            
+            // If photo is stored as binary BLOB in database
+            $contentType = $this->getImageMimeType($complaint->photo);
+            return response($complaint->photo)
+                ->header('Content-Type', $contentType ?: 'image/jpeg')
+                ->header('Content-Disposition', 'inline; filename="complaint-photo-'.$id.'.jpg"');
+        } catch (\Exception $e) {
+            Log::error('Error retrieving complaint photo', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Error retrieving photo'], 500);
+        }
+    }
+
+    /**
+     * Get the video binary data for a complaint
+     * 
+     * @param int $id The complaint ID
+     * @return \Illuminate\Http\Response
+     */
+    public function getVideo($id)
+    {
+        try {
+            $complaint = ComplaintRequest::findOrFail($id);
+            
+            // Check if video exists
+            if (empty($complaint->video)) {
+                return response()->json(['error' => 'No video available'], 404);
+            }
+            
+            // If video is stored as a file path rather than blob
+            if (is_string($complaint->video) && !$this->isBinary($complaint->video)) {
+                if (Storage::disk('public')->exists($complaint->video)) {
+                    return response()->file(Storage::disk('public')->path($complaint->video));
+                } else {
+                    return response()->json(['error' => 'Video file not found'], 404);
+                }
+            }
+            
+            // If video is stored as binary BLOB in database
+            return response($complaint->video)
+                ->header('Content-Type', 'video/mp4')
+                ->header('Content-Disposition', 'inline; filename="complaint-video-'.$id.'.mp4"');
+        } catch (\Exception $e) {
+            Log::error('Error retrieving complaint video', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Error retrieving video'], 500);
+        }
+    }
+
+    /**
+     * Helper function to check if a string is likely binary data
+     * 
+     * @param string $data The data to check
+     * @return bool
+     */
+    private function isBinary($data)
+    {
+        if (empty($data)) {
+            return false;
+        }
+        
+        // Check if data is string and possibly binary
+        if (!is_string($data)) {
+            return true; // If not string, assume binary
+        }
+        
+        // If data has path-like pattern, assume it's a path not binary
+        if (preg_match('#^[a-zA-Z0-9_/\.-]+$#', $data) && strlen($data) < 255) {
+            return false;
+        }
+        
+        // Check for common binary data patterns
+        $binary = false;
+        for ($i = 0; $i < min(strlen($data), 50); $i++) {
+            if (ord($data[$i]) < 32 && !in_array(ord($data[$i]), [9, 10, 13])) {
+                $binary = true;
+                break;
+            }
+        }
+        
+        return $binary;
+    }
+    
+    /**
+     * Helper function to determine the MIME type of an image from its binary data
+     * 
+     * @param string $data The binary image data
+     * @return string|null The MIME type or null if not determinable
+     */
+    private function getImageMimeType($data)
+    {
+        if (empty($data)) {
+            return null;
+        }
+        
+        // Check the first few bytes to determine file type
+        $signature = substr($data, 0, 12);
+        
+        if (substr($signature, 0, 2) === "\xFF\xD8") {
+            return 'image/jpeg';
+        } elseif (substr($signature, 0, 8) === "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A") {
+            return 'image/png';
+        } elseif (substr($signature, 0, 4) === "GIF8") {
+            return 'image/gif';
+        } elseif (substr($signature, 0, 2) === "BM") {
+            return 'image/bmp';
+        } elseif (in_array(substr($signature, 0, 4), ['RIFF', "\x00\x00\x01\x00"])) {
+            return 'image/webp';
+        } elseif (substr($signature, 0, 4) === "WEBP") {
+            return 'image/webp';
+        }
+        
+        return 'application/octet-stream';
     }
 }
 

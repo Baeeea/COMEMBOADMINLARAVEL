@@ -253,7 +253,7 @@
       </div>
       <!-- Delete Confirmation Modal End -->
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-      <script src="{{ asset('js/live-updates.js') }}"></script>
+      {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
       <script>
         function setDeleteForm(actionUrl) {
           document.getElementById('deleteForm').action = actionUrl;
@@ -342,8 +342,8 @@
       });
     </script>
     
-    <!-- Live Updates Script -->
-    <script src="{{ asset('js/live-updates.js') }}"></script>
+    <!-- Live Updates Script - Auto-refresh disabled -->
+    {{-- <script src="{{ asset('js/live-updates.js') }}"></script> --}}
     
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

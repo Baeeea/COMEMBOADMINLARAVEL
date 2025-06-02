@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class FeedbackController extends Controller
-{    /**
+{    
+    /**
      * Display a listing of the feedback.
      */
     public function index()
@@ -28,7 +29,8 @@ class FeedbackController extends Controller
 
     /**
      * Store a newly created feedback in storage.
-     */    public function store(Request $request)
+     */    
+    public function store(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
@@ -40,62 +42,52 @@ class FeedbackController extends Controller
             'feedback' => $request->feedback,
         ]);
 
-        $this->triggerLiveUpdate();
-
         return redirect()->route('feedback')->with('success', 'Feedback added successfully.');
-    }
-
-    /**
+    }    /**
      * Display the specified feedback.
      */
-    public function show(Feedback $feedback)
+    public function show($id)
     {
+        $feedback = Feedback::findOrFail($id);
         return view('feedback.show', compact('feedback'));
     }
 
     /**
      * Show the form for editing the specified feedback.
      */
-    public function edit(Feedback $feedback)
+    public function edit($id)
     {
+        $feedback = Feedback::findOrFail($id);
         $users = User::all();
         return view('editfeedback', compact('feedback', 'users'));
     }
 
     /**
      * Update the specified feedback in storage.
-     */    public function update(Request $request, Feedback $feedback)
+     */    
+    public function update(Request $request, $id)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'feedback' => 'required|string|max:1000',
         ]);
 
+        $feedback = Feedback::findOrFail($id);
         $feedback->update([
             'user_id' => $request->user_id,
             'feedback' => $request->feedback,
         ]);
-
-        $this->triggerLiveUpdate();
 
         return redirect()->route('feedback')->with('success', 'Feedback updated successfully.');
     }
 
     /**
      * Remove the specified feedback from storage.
-     */
-    public function destroy(Feedback $feedback)
+     */    
+    public function destroy($id)
     {
+        $feedback = Feedback::findOrFail($id);
         $feedback->delete();
-        $this->triggerLiveUpdate();
         return redirect()->route('feedback')->with('success', 'Feedback deleted successfully.');
-    }
-
-    /**
-     * Trigger live update notification
-     */
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
     }
 }

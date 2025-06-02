@@ -8,52 +8,40 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ResidentController extends Controller
-{
-    /**
+{    /**
      * Display a listing of the residents.
      */
     public function index()
     {
-        $residents = Resident::orderBy('id', 'desc')->get();
+        $residents = Resident::orderBy('user_id', 'desc')->get();
         return view('residents', compact('residents'));
-    }
-
-    /**
+    }    /**
      * Remove the specified resident from storage.
-     */
-    public function destroy($id)
+     */    public function destroy($id)
     {
-        $resident = Resident::findOrFail($id);
+        $resident = Resident::where('user_id', $id)->firstOrFail();
         $resident->delete();
-        $this->triggerLiveUpdate();
         return redirect()->route('residents')->with('success', 'Resident deleted successfully.');
-    }
-
-    /**
+    }    /**
      * Show the specified resident.
      */
     public function show($id)
     {
-        $resident = Resident::findOrFail($id);
+        $resident = Resident::where('user_id', $id)->firstOrFail();
         return view('residents.show', compact('resident'));
-    }
-
-    /**
+    }    /**
      * Toggle verification status of a resident
      */
     public function toggleVerification($id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
-            $resident->verified = !$resident->verified;
-            $resident->save();
+            $resident->verified = !$resident->verified;        $resident->save();
 
-            $this->triggerLiveUpdate();
-
-            $message = $resident->verified
-                ? 'Resident has been verified successfully.'
-                : 'Resident verification has been revoked.';
+        $message = $resident->verified
+            ? 'Resident has been verified successfully.'
+            : 'Resident verification has been revoked.';
 
             if (request()->ajax()) {
                 return response()->json([
@@ -83,17 +71,16 @@ class ResidentController extends Controller
 
     /**
      * Update the specified resident in storage.
-     */
-    public function update(Request $request, $id)
+     */    public function update(Request $request, $id)
     {
-        $resident = Resident::findOrFail($id);
+        $resident = Resident::where('user_id', $id)->firstOrFail();
 
         $request->validate([
             'firstname' => 'required|string|max:255',
             'lastname' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
-            'username' => 'required|string|max:255|unique:residents,username,' . $resident->id,
-            'email' => 'required|string|email|max:255|unique:residents,email,' . $resident->id,
+            'username' => 'required|string|max:255|unique:residents,username,' . $resident->user_id . ',user_id',
+            'email' => 'required|string|email|max:255|unique:residents,email,' . $resident->user_id . ',user_id',
             'contact_number' => 'nullable|string|max:255',
             'profile' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'validIDFront' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
@@ -124,12 +111,7 @@ class ResidentController extends Controller
 
         if ($request->filled('password')) {
             $updateData['password'] = bcrypt($request->password);
-        }
-
-        $resident->update($updateData);
-
-        $this->triggerLiveUpdate();
-
+        }        $resident->update($updateData);        
         $message = 'Resident updated successfully!';
         if ($request->hasFile('validIDFront') || $request->hasFile('validIDBack')) {
             $message = 'ID verification images updated successfully!';
@@ -137,16 +119,7 @@ class ResidentController extends Controller
             $message = 'Profile picture updated successfully!';
         }
 
-        return redirect()->route('residents.view', $resident->id)->with('success', $message);
-    }
-
-    /**
-     * Trigger live update notification
-     */
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
+        return redirect()->route('residents.view', $resident->user_id)->with('success', $message);    }
 
     /**
      * API: Upload profile image for a resident
@@ -154,7 +127,7 @@ class ResidentController extends Controller
     public function uploadProfileImage(Request $request, $id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             $request->validate([
                 'profile' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -162,14 +135,10 @@ class ResidentController extends Controller
 
             if ($request->hasFile('profile')) {
                 $resident->profile = file_get_contents($request->file('profile')->getPathname());
-                $resident->save();
-
-                $this->triggerLiveUpdate();
-
-                return response()->json([
+                $resident->save();                return response()->json([
                     'success' => true,
                     'message' => 'Profile image uploaded successfully!',
-                    'image_url' => route('resident.profile.image', $resident->id)
+                    'image_url' => route('resident.profile.image', $resident->user_id)
                 ]);
             }
 
@@ -188,15 +157,13 @@ class ResidentController extends Controller
                 'message' => 'Error uploading profile image: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
+    }    /**
      * API: Upload ID images for a resident
      */
     public function uploadIDImages(Request $request, $id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             $request->validate([
                 'validIDFront' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
@@ -214,11 +181,8 @@ class ResidentController extends Controller
             if ($request->hasFile('validIDBack')) {
                 $updateData['validIDBack'] = $request->file('validIDBack')->store('uploads/ids', 'public');
                 $uploadedFiles[] = 'ID Back';
-            }
-
-            if (!empty($updateData)) {
+            }            if (!empty($updateData)) {
                 $resident->update($updateData);
-                $this->triggerLiveUpdate();
 
                 $message = 'ID verification images updated successfully!';
                 if (count($uploadedFiles) == 1) {
@@ -249,21 +213,19 @@ class ResidentController extends Controller
                 'message' => 'Error uploading ID images: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    /**
+    }    /**
      * API: Get profile image for a resident
      */
     public function getProfileImage($id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             if ($resident->profile) {
                 return response()->json([
                     'success' => true,
                     'has_image' => true,
-                    'image_url' => route('resident.profile.image', $resident->id),
+                    'image_url' => route('resident.profile.image', $resident->user_id),
                     'message' => 'Profile image found'
                 ]);
             } else {
@@ -282,15 +244,13 @@ class ResidentController extends Controller
                 'message' => 'Resident not found'
             ], 404);
         }
-    }
-
-    /**
+    }    /**
      * API: Get ID images for a resident
      */
     public function getIDImages($id)
     {
         try {
-            $resident = Resident::findOrFail($id);
+            $resident = Resident::where('user_id', $id)->firstOrFail();
 
             return response()->json([
                 'success' => true,

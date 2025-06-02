@@ -319,14 +319,14 @@
                     <i class="bi bi-pencil-square me-1"></i> Edit Profile
                   </button>
                   @if($resident->status !== 'Verified')
-                    <form method="POST" action="{{ route('residents.verify', $resident->id) }}" class="d-inline">
+                    <form method="POST" action="{{ route('residents.verify', $resident->user_id) }}" class="d-inline">
                       @csrf
                       <button type="submit" class="btn btn-primary" onclick="return confirm('Are you sure you want to verify this resident?')">
                         Verify Account
                       </button>
                     </form>
                   @else
-                    <form method="POST" action="{{ route('residents.verify', $resident->id) }}" class="d-inline">
+                    <form method="POST" action="{{ route('residents.verify', $resident->user_id) }}" class="d-inline">
                       @csrf
                       <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to revoke verification for this resident?')">
                         Revoke Verification
@@ -473,7 +473,7 @@
                       <h5 class="text-secondary mb-3">Valid ID - Front</h5>
                       @if($resident->id_front)
                         <div class="border rounded p-3 bg-light">
-                          <img src="{{ route('residents.id.image', ['id' => $resident->id, 'type' => 'front']) }}" 
+                          <img src="{{ route('residents.id.image', ['id' => $resident->user_id ?? $resident->id, 'type' => 'front']) }}" 
                                alt="Valid ID Front" 
                                class="img-fluid rounded shadow-sm"
                                style="max-height: 300px; width: 100%; object-fit: contain; cursor: pointer;"
@@ -492,7 +492,7 @@
                       <h5 class="text-secondary mb-3">Valid ID - Back</h5>
                       @if($resident->id_back)
                         <div class="border rounded p-3 bg-light">
-                          <img src="{{ route('residents.id.image', ['id' => $resident->id, 'type' => 'back']) }}" 
+                          <img src="{{ route('residents.id.image', ['id' => $resident->user_id ?? $resident->id, 'type' => 'back']) }}" 
                                alt="Valid ID Back" 
                                class="img-fluid rounded shadow-sm"
                                style="max-height: 300px; width: 100%; object-fit: contain; cursor: pointer;"
@@ -524,7 +524,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <form action="{{ route('residents.update', $resident->id) }}" method="POST" enctype="multipart/form-data">
+              <form action="{{ route('residents.update', $resident->user_id ?? $resident->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 
@@ -603,7 +603,7 @@
                     <div class="text-center">
                       <div class="id-image-container position-relative">
                         <img id="idFrontPreview" 
-                             src="{{ $resident->id_front ? route('residents.id.image', ['id' => $resident->id, 'type' => 'front']) : 'https://via.placeholder.com/300x200?text=No+ID+Front' }}" 
+                             src="{{ $resident->id_front ? route('residents.id.image', ['id' => $resident->user_id ?? $resident->id, 'type' => 'front']) : 'https://via.placeholder.com/300x200?text=No+ID+Front' }}" 
                              alt="Valid ID Front" 
                              class="id-image">
                         <label for="idFrontFile" class="id-image-label">
@@ -623,7 +623,7 @@
                     <div class="text-center">
                       <div class="id-image-container position-relative">
                         <img id="idBackPreview" 
-                             src="{{ $resident->id_back ? route('residents.id.image', ['id' => $resident->id, 'type' => 'back']) : 'https://via.placeholder.com/300x200?text=No+ID+Back' }}" 
+                             src="{{ $resident->id_back ? route('residents.id.image', ['id' => $resident->user_id ?? $resident->id, 'type' => 'back']) : 'https://via.placeholder.com/300x200?text=No+ID+Back' }}" 
                              alt="Valid ID Back" 
                              class="id-image">
                         <label for="idBackFile" class="id-image-label">
@@ -683,10 +683,10 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('js/live-updates.js') }}"></script>
+    {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
     <script>
       // Global variables
-      const residentId = {{ $resident->id }};
+      const residentId = {{ $resident->user_id ?? $resident->id }};
       const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
       // Auto-hide success/error messages after 5 seconds

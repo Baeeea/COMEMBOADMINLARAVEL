@@ -57,14 +57,14 @@ class ProfileImageController extends Controller
         $headers = [
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="profile-'.$id.'.jpg"',
-        ];
-
-        // Generate ETag for client-side caching
-        $etag = md5($user->profile);
-        $headers['ETag'] = $etag;
+        ];        // Generate ETag based on user's updated_at timestamp and content for better cache invalidation
+        $lastModified = $user->updated_at ? $user->updated_at->timestamp : time();
+        $etag = md5($user->profile . $lastModified);
+        $headers['ETag'] = '"' . $etag . '"';
         
         // Check if browser cache is still valid
-        if ($request->header('If-None-Match') == $etag) {
+        $ifNoneMatch = $request->header('If-None-Match');
+        if ($ifNoneMatch && trim($ifNoneMatch, '"') === $etag) {
             return response()->make('', 304, $headers);
         }
         

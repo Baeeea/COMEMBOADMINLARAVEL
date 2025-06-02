@@ -42,10 +42,8 @@ class AdminController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => bcrypt($request->password),
-            'role' => $request->role,
-        ]);
+            'role' => $request->role,        ]);
 
-        // $this->triggerLiveUpdate();
         return redirect()->route('admin.index')->with('success', 'User created successfully!');
     }
 
@@ -125,7 +123,6 @@ class AdminController extends Controller
             $updateData['password'] = bcrypt($request->password);
         }        $admin->update($updateData);
 
-        // $this->triggerLiveUpdate();
         return redirect()->route('admin.show', $admin->id)->with('success', 'Profile updated successfully!');
     }
 
@@ -141,17 +138,7 @@ class AdminController extends Controller
                     })
                     ->firstOrFail();        $admin->delete();
 
-        // $this->triggerLiveUpdate();
-        return redirect()->route('admin')->with('success', 'Admin deleted successfully!');
-    }
-
-    /**
-     * Trigger live update notification
-     */
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
+        return redirect()->route('admin')->with('success', 'Admin deleted successfully!');    }
 
     /**
      * Upload profile image for the current authenticated user
@@ -168,18 +155,14 @@ class AdminController extends Controller
             $profilePhoto = $request->file('profile_image');
             
             // Read the file content as binary data
-            $imageData = file_get_contents($profilePhoto->getPathname());
-              // Store binary data directly in the database
+            $imageData = file_get_contents($profilePhoto->getPathname());            // Store binary data directly in the database
             $user->update(['profile' => $imageData]);
             
-            // $this->triggerLiveUpdate();
             return redirect()->back()->with('success', 'Profile image updated successfully!');
         }
 
         return redirect()->back()->with('error', 'Failed to upload profile image.');
-    }
-
-    /**
+    }    /**
      * Update profile information for the current authenticated user
      */
     public function updateProfile(Request $request)
@@ -189,14 +172,40 @@ class AdminController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-        ]);        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
+            'profile' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'firstname' => 'nullable|string|max:255',
+            'lastname' => 'nullable|string|max:255',
         ]);
 
-        // $this->triggerLiveUpdate();
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+        ];
+
+        // Handle optional fields
+        if ($request->has('firstname')) {
+            $updateData['firstname'] = $request->firstname;
+        }
+        
+        if ($request->has('lastname')) {
+            $updateData['lastname'] = $request->lastname;
+        }
+
+        // Handle profile picture upload for BLOB storage
+        if ($request->hasFile('profile')) {
+            $profilePhoto = $request->file('profile');
+            
+            // Read the file content as binary data
+            $imageData = file_get_contents($profilePhoto->getPathname());
+            
+            // Store binary data directly in the database
+            $updateData['profile'] = $imageData;
+        }
+
+        $user->update($updateData);
+
         return redirect()->back()->with('success', 'Profile updated successfully!');
-    }    /**
+    }/**
      * Show the current authenticated user's profile
      */
     public function profile()
@@ -229,7 +238,6 @@ class AdminController extends Controller
             'password' => bcrypt($request->password),
         ]);
 
-        // $this->triggerLiveUpdate();
         return redirect()->back()->with('success', 'Password updated successfully!');
     }
 }

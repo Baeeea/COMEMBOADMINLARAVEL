@@ -175,7 +175,7 @@
             @endif
           </div>
           <div>
-            <form id="complaint-form" action="{{ route('complaint.update', $complaint->user_id) }}" method="POST" enctype="multipart/form-data" onsubmit="return validateForm(event)">
+            <form id="complaint-form" action="{{ route('complaint.update', $complaint->id) }}" method="POST" enctype="multipart/form-data" onsubmit="return validateForm(event)">
               @csrf
               @method('PUT')
             <!-- Complaint Information Table -->
@@ -220,12 +220,52 @@
                     <input type="text" class="form-control" name="location_occurrence" value="{{ $complaint->location_occurrence }}" style="width: 70%;">
                   </td>
                 </tr>
+
+                <!-- Conditional fields based on complaint type -->
+                @if(strtolower($complaint->complaint_type) == 'theft')
+                <tr class="specific-fields theft-fields">
+                  <th style="width: 20%;">Items Stolen</th>
+                  <td style="width: 80%;">
+                    <textarea class="form-control" name="items_stolen" rows="2" style="width: 70%;">{{ $complaint->items_stolen }}</textarea>
+                  </td>
+                </tr>
+                <tr class="specific-fields theft-fields">
+                  <th style="width: 20%;">Value of Items</th>
+                  <td style="width: 80%;">
+                    <input type="text" class="form-control" name="items_value" value="{{ $complaint->items_value }}" style="width: 70%;" placeholder="Estimated value in PHP">
+                  </td>
+                </tr>
+                @endif
+
+                @if(strtolower($complaint->complaint_type) == 'illegal business')
+                <tr class="specific-fields business-fields">
+                  <th style="width: 20%;">Business Name</th>
+                  <td style="width: 80%;">
+                    <input type="text" class="form-control" name="business_name" value="{{ $complaint->business_name }}" style="width: 70%;">
+                  </td>
+                </tr>
+                @endif
+
+                @if(strtolower($complaint->complaint_type) == 'illegal parking')
+                <tr class="specific-fields parking-fields">
+                  <th style="width: 20%;">Vehicle Details</th>
+                  <td style="width: 80%;">
+                    <textarea class="form-control" name="vehicle_details" rows="2" style="width: 70%;" placeholder="Type, color, plate number, etc.">{{ $complaint->vehicle_details }}</textarea>
+                  </td>
+                </tr>
+                @endif
+
                 <tr>
                   <th style="width: 20%;">Photo</th>
                   <td style="width: 80%;">
                     <input type="file" class="form-control" name="photo" accept="image/*" style="width: 70%;">
                     @if($complaint->photo)
-                      <small class="text-muted">Current: {{ $complaint->photo }}</small>
+                      <div class="mt-2">
+                        <small class="text-muted">Current Photo:</small>
+                        <div class="mt-1">
+                          <img src="{{ route('api.complaints.photo', $complaint->id) }}" alt="Complaint Photo" class="img-thumbnail" style="max-width: 300px; max-height: 200px;">
+                        </div>
+                      </div>
                     @endif
                   </td>
                 </tr>
@@ -234,7 +274,15 @@
                   <td style="width: 80%;">
                     <input type="file" class="form-control" name="video" accept="video/*" style="width: 70%;">
                     @if($complaint->video)
-                      <small class="text-muted">Current: {{ $complaint->video }}</small>
+                      <div class="mt-2">
+                        <small class="text-muted">Current Video:</small>
+                        <div class="mt-1">
+                          <video controls class="img-thumbnail" style="max-width: 400px; max-height: 300px;">
+                            <source src="{{ route('api.complaints.video', $complaint->id) }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                          </video>
+                        </div>
+                      </div>
                     @endif
                   </td>
                 </tr>
@@ -295,7 +343,7 @@
             <div class="text-center my-5">
               <a href="{{ route('complaint') }}" class="btn btn-secondary me-2" style="width: 15%;">Cancel</a>
               <button type="submit" form="complaint-form" class="btn btn-primary me-2" style="width: 15%;">Save</button>
-              <button type="button" class="btn btn-danger" style="width: 15%;" onclick="confirmDeleteComplaint({{ $complaint->user_id }})">Delete</button>
+              <button type="button" class="btn btn-danger" style="width: 15%;" onclick="confirmDeleteComplaint({{ $complaint->id }})">Delete</button>
             </div>
           </div>
         </div>
@@ -305,7 +353,7 @@
 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('js/live-updates.js') }}"></script>
+    {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing sentiment analysis...');
@@ -314,7 +362,8 @@
             const descTextarea = document.getElementById('description');
             const summaryBadge = document.getElementById('sentiment-summary-badge');
             const statusSelect = document.querySelector('select[name="phase_status"]');
-            const userId = {{ $complaint->user_id }};
+            const complaintId = {{ $complaint->id }};
+            const userId = {{ $complaint->user_id }}; // Keep userId for reference to the user
             let analyzeTimeout = null;
             
             // First ensure elements exist
@@ -607,15 +656,46 @@
             });
         }
 
+        // Dynamic complaint type specific fields
+        const complaintTypeInput = document.querySelector('input[name="complaint_type"]');
+        const theftFields = document.querySelectorAll('.theft-fields');
+        const businessFields = document.querySelectorAll('.business-fields');
+        const parkingFields = document.querySelectorAll('.parking-fields');
+
+        function toggleSpecificFields() {
+            const complaintType = complaintTypeInput.value.toLowerCase().trim();
+            
+            // Hide all specific fields first
+            theftFields.forEach(field => field.style.display = 'none');
+            businessFields.forEach(field => field.style.display = 'none');
+            parkingFields.forEach(field => field.style.display = 'none');
+            
+            // Show fields based on complaint type
+            if (complaintType === 'theft') {
+                theftFields.forEach(field => field.style.display = '');
+            } else if (complaintType === 'illegal business') {
+                businessFields.forEach(field => field.style.display = '');
+            } else if (complaintType === 'illegal parking') {
+                parkingFields.forEach(field => field.style.display = '');
+            }
+        }
+
+        // Set initial state
+        if (complaintTypeInput) {
+            toggleSpecificFields();
+            complaintTypeInput.addEventListener('input', toggleSpecificFields);
+            complaintTypeInput.addEventListener('change', toggleSpecificFields);
+        }
+
         // Removed duplicate event listener - the first one above handles everything
 
         // Removed duplicate sentiment analysis logic
 
         // Function to handle delete confirmation
-        function confirmDeleteComplaint(user_id) {
+        function confirmDeleteComplaint(id) {
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             const deleteForm = document.getElementById('deleteForm');
-            deleteForm.action = `/complaint/${user_id}/delete`;
+            deleteForm.action = `/complaint/${id}/delete`;
             deleteModal.show();
         }
     </script>

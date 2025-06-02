@@ -179,9 +179,11 @@
             <select id="statusFilter" class="form-select mb-3" style="width: 200px;">
         <option value="all">All Requests</option>
         <option value="pending">Pending</option>
-        <option value="inprocess">In Process</option>
+        <option value="in process">In Process</option>
         <option value="completed">Completed</option>
+        <option value="approved">Approved</option>
         <option value="rejected">Rejected</option>
+        <option value="cancelled">Cancelled</option>
 </select>
 
             <div class="table-responsive">
@@ -236,7 +238,7 @@
 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('js/live-updates.js') }}"></script>
+    {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
     <!-- JavaScript for document request filtering -->
     <script>
     // Function to handle delete confirmation
@@ -250,54 +252,122 @@
     document.addEventListener('DOMContentLoaded', function() {
         async function updateTable(status = 'all') {
             try {
-                const response = await fetch(`{{ route('documentrequests.data') }}?status=${status}`);
-                if (!response.ok) throw new Error('Network response was not ok');
+                console.log('Fetching data with status:', status);
+                const url = `{{ route('documentrequests.data') }}?status=${encodeURIComponent(status)}`;
+                console.log('Request URL:', url);
+                
+                const response = await fetch(url);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`Network response was not ok: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Received data:', data);
+
+                // Check if data has an error property
+                if (data.error) {
+                    throw new Error(data.error);
+                }
 
                 // Log the first record to help debug available fields
                 if (data.length > 0) {
                     console.log("First record fields:", Object.keys(data[0]));
                     console.log("First record data:", data[0]);
+                    console.log("Available statuses:", [...new Set(data.map(item => item.status))]);
                 }
 
                 let tbody = '';
-                data.forEach(request => {
-                    const formattedDate = new Date(request.timestamp).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: '2-digit'
+                if (data.length === 0) {
+                    tbody = `<tr><td colspan="5" class="text-center text-muted">No records found for status: ${status}</td></tr>`;
+                } else {
+                    data.forEach(request => {
+                        // Format date properly
+                        const formattedDate = new Date(request.timestamp).toLocaleDateString('en-US', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            year: '2-digit'
+                        });
+
+                        // Use the id field from the response
+                        const requestId = request.id;
+
+                        // Format resident name - handle null values gracefully
+                        const lastName = request.lastname || '';
+                        const firstName = request.firstname || '';
+                        
+                        let fullName = '';
+                        if (lastName && firstName) {
+                            fullName = `${lastName}, ${firstName}`;
+                        } else if (lastName || firstName) {
+                            fullName = lastName || firstName;
+                        } else {
+                            fullName = 'No Name Available';
+                        }
+                        
+                        // Format status with proper capitalization
+                        const statusText = request.status ? 
+                            request.status.charAt(0).toUpperCase() + request.status.slice(1).toLowerCase() : 
+                            'Pending';
+                        
+                        // Color code status
+                        let statusClass = '';
+                        switch (request.status?.toLowerCase()) {
+                            case 'completed':
+                                statusClass = 'text-success fw-bold';
+                                break;
+                            case 'approved':
+                                statusClass = 'text-success';
+                                break;
+                            case 'pending':
+                                statusClass = 'text-warning';
+                                break;
+                            case 'in process':
+                            case 'in-process':
+                                statusClass = 'text-info';
+                                break;
+                            case 'rejected':
+                            case 'cancelled':
+                                statusClass = 'text-danger';
+                                break;
+                            default:
+                                statusClass = 'text-secondary';
+                        }
+                        
+                        tbody += `
+                            <tr>
+                                <td class="py-4">${fullName}</td>
+                                <td class="py-4">${request.document_type || 'N/A'}</td>
+                                <td class="py-4">${formattedDate}</td>
+                                <td class="py-4"><span class="${statusClass}">${statusText}</span></td>
+                                <td class="py-4">
+                                    <a href="/documentrequest/${requestId}/edit" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
+                                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteRequest(${requestId})">Delete</button>
+                                </td>
+                            </tr>
+                        `;
                     });
-
-                    // Determine the ID field - could be 'id', 'documentrequest_id', 'request_id', etc.
-                    const idField = request.id || request.document_id || request.request_id || request.documentrequest_id || Object.keys(request)[0];
-
-                    tbody += `
-                        <tr>
-                            <td class="py-4">${request.lastname}, ${request.firstname} ${request.middle_name}</td>
-                            <td class="py-4">${request.document_type}</td>
-                            <td class="py-4">${formattedDate}</td>
-                            <td class="py-4">${request.status}</td>
-                            <td class="py-4">
-                                <a href="/documentrequest/${idField}/edit" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
-                                <button class="btn btn-danger btn-sm" onclick="confirmDeleteRequest(${idField})">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                });
+                }
 
                 document.querySelector('tbody').innerHTML = tbody;
+                console.log('Table updated successfully with', data.length, 'records');
             } catch (error) {
                 console.error('Error fetching data:', error);
-                document.querySelector('tbody').innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to load data</td></tr>`;
+                document.querySelector('tbody').innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to load data: ${error.message}</td></tr>`;
             }
         }
 
-        // Fetch all on page load
+        // Fetch all data on page load
         updateTable();
 
         // Listen for dropdown changes
         document.getElementById('statusFilter').addEventListener('change', function() {
-            updateTable(this.value);
+            const selectedStatus = this.value;
+            console.log('Status filter changed to:', selectedStatus);
+            updateTable(selectedStatus);
         });
     });
     </script>

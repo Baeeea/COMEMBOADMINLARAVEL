@@ -168,9 +168,9 @@
                         {{ $resident->status ?: 'Not Verified' }}
                       </td>
                       <td class="py-4">
-                        <a href="{{ route('residents.view', $resident->id) }}" class="btn btn-primary btn-sm px-3 me-2">View</a>
+                        <a href="{{ route('residents.view', $resident->user_id ?? $resident->id) }}" class="btn btn-primary btn-sm px-3 me-2">View</a>
                         <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" 
-                                onclick="setDeleteAction('{{ route('residents.destroy', $resident->id) }}', '{{ isset($resident->firstname) ? $resident->firstname . ' ' . ($resident->lastname ?? '') : ($resident->name ?? 'this resident') }}')">
+                                onclick="setDeleteAction('{{ route('residents.destroy', $resident->user_id ?? $resident->id) }}', '{{ isset($resident->firstname) ? $resident->firstname . ' ' . ($resident->lastname ?? '') : ($resident->name ?? 'this resident') }}')">
                           Delete
                         </button>
                       </td>
@@ -220,7 +220,7 @@
         </div>
       @endif
       <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-      <script src="{{ asset('js/live-updates.js') }}"></script>
+      {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
       <script>
         function setDeleteAction(actionUrl, residentName) {
           document.getElementById('deleteForm').action = actionUrl;

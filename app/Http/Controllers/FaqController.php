@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Cache;
 
 class FaqController extends Controller
 {
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
-
     public function index()
     {
         $faqs = Faq::orderBy('id', 'desc')->get();
@@ -25,14 +20,11 @@ class FaqController extends Controller
         $request->validate([
             'question' => 'required|string|max:255',
             'answer' => 'required|string',
-        ]);
-
-        Faq::create([
+        ]);        Faq::create([
             'question' => $request->question,
             'answer' => $request->answer,
         ]);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('faqs')->with('success', 'FAQ created successfully!');
     }
 
@@ -48,22 +40,17 @@ class FaqController extends Controller
         ]);
 
         $faq = Faq::findOrFail($id);
-        
-        $faq->update([
+          $faq->update([
             'question' => $request->question,
             'answer' => $request->answer,
         ]);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('faqs')->with('success', 'FAQ updated successfully!');
     }
 
     public function destroy($id)
-    {
-        $faq = Faq::findOrFail($id);
+    {        $faq = Faq::findOrFail($id);
         $faq->delete();
-
-        $this->triggerLiveUpdate();
         return redirect()->route('faqs')->with('success', 'FAQ deleted successfully!');
     }
 }

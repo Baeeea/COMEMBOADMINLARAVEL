@@ -197,6 +197,42 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+    // Function to refresh profile image after successful upload
+    function refreshProfileImage() {
+        const timestamp = new Date().getTime();
+        const newImageUrl = `{{ route('profile.image', ['id' => Auth::user()->id]) }}&v=${timestamp}`;
+        
+        // Update all profile images on the page
+        const profileImages = document.querySelectorAll('img[src*="profile-image"]');
+        profileImages.forEach(img => {
+            // Update the src with new timestamp to force refresh
+            img.src = newImageUrl;
+        });
+    }
+
+    // Listen for form submission and refresh images after successful upload
+    document.addEventListener('DOMContentLoaded', function() {
+        const profileForm = document.querySelector('form[action="{{ route('profile.update') }}"]');
+        
+        if (profileForm) {
+            profileForm.addEventListener('submit', function(e) {
+                // Check if a file was selected
+                const fileInput = document.getElementById('profilePicture');
+                if (fileInput && fileInput.files.length > 0) {
+                    // Set a timeout to refresh the image after form submission
+                    setTimeout(function() {
+                        refreshProfileImage();
+                    }, 1000); // Wait 1 second for the upload to complete
+                }
+            });
+        }
+
+        // Also refresh on page load if there's a success message (indicating recent upload)
+        @if(session('success'))
+            setTimeout(refreshProfileImage, 500);
+        @endif
+    });
 </script>
 
 @endsection

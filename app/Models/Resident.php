@@ -15,13 +15,11 @@ class Resident extends Model
     /**
      * Indicates if the model should be timestamped.
      */
-    public $timestamps = false;
-
-    /**
+    public $timestamps = false;    /**
      * The attributes that are mass assignable.
      */    protected $fillable = [
-        'firstname',
-        'lastname',
+        'first_name',
+        'last_name',
         'username',
         'email',
         'password',

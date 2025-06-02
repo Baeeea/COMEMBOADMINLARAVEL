@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Cache;
 
 class NewsController extends Controller
 {
-    private function triggerLiveUpdate()
-    {
-        Cache::put('last_database_update', time(), 3600);
-    }
-
     public function index()
     {
         $news = News::orderBy('createdAt', 'desc')->get();
@@ -62,7 +57,6 @@ class NewsController extends Controller
             $data['image'] = $imagePath;
         }        $news->update($data);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('news')->with('success', 'News updated successfully!');
     }
 
@@ -86,7 +80,6 @@ class NewsController extends Controller
             $data['image'] = $imagePath;
         }        News::create($data);
 
-        $this->triggerLiveUpdate();
         return redirect()->route('news')->with('success', 'News created successfully!');
     }
 
@@ -98,10 +91,7 @@ class NewsController extends Controller
         if ($news->image && \Storage::exists('public/' . $news->image)) {
             \Storage::delete('public/' . $news->image);
         }
-        
-        $news->delete();
-
-        $this->triggerLiveUpdate();
+          $news->delete();
         return redirect()->route('news')->with('success', 'News deleted successfully!');
     }
 }

@@ -5,7 +5,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Complaint Request</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn                const sentimentBadge = `<span class="badge ${badgeClass} sentiment-badge" data-complaint-id="${complaint.id}" data-user-id="${complaint.user_id}" data-sentiment="${sentiment}">${badgeText}</span>`;jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
@@ -230,14 +230,14 @@
                                 };
                                 $badgeText = ucfirst($sentiment);
                             @endphp
-                            <span class="badge {{ $badgeClass }} sentiment-badge" data-complaint-id="{{ $complaint->user_id }}" 
+                            <span class="badge {{ $badgeClass }} sentiment-badge" data-complaint-id="{{ $complaint->id }}" 
                                   data-sentiment="{{ $sentiment }}">
                                 {{ $badgeText }}
                             </span>
                         </td>
                         <td class="py-4">
-                            <a href="{{ route('complaint.edit', $complaint->user_id) }}" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
-                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteComplaint({{ $complaint->user_id }})">Delete</button>
+                            <a href="{{ route('complaint.edit', $complaint->id) }}" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
+                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteComplaint({{ $complaint->id }})">Delete</button>
                         </td>
                     </tr>
                     @endforeach
@@ -275,7 +275,7 @@
     </div>
     
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ asset('js/live-updates.js') }}"></script>
+  {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
     <script>
         let deleteComplaintId = null;
         let lastUpdateTimestamp = null;
@@ -415,7 +415,7 @@
                 }[sentiment] || 'bg-secondary';
                 
                 const badgeText = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
-                const sentimentBadge = `<span class="badge ${badgeClass} sentiment-badge" data-complaint-id="${complaint.user_id}" data-sentiment="${sentiment}">${badgeText}</span>`;
+                const sentimentBadge = `<span class="badge ${badgeClass} sentiment-badge" data-complaint-id="${complaint.id}" data-sentiment="${sentiment}">${badgeText}</span>`;
 
                 tableRows += `
                     <tr>
@@ -425,8 +425,8 @@
                         <td class="py-4">${complaint.status || 'Pending'}</td>
                         <td class="py-4">${sentimentBadge}</td>
                         <td class="py-4">
-                            <a href="/complaint/${complaint.user_id}/edit" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
-                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteComplaint(${complaint.user_id})">Delete</button>
+                            <a href="/complaint/${complaint.id}/edit" class="btn btn-primary btn-sm px-3 me-2">Edit</a>
+                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteComplaint(${complaint.id})">Delete</button>
                         </td>
                     </tr>
                 `;
@@ -480,15 +480,15 @@
         });
 
         // Delete confirmation functions
-        function confirmDeleteComplaint(user_id) {
+        function confirmDeleteComplaint(id) {
             // Prevent opening multiple modals or confirming already deleted complaints
-            if (isDeleting || deletedComplaints.has(user_id) || deleteComplaintId !== null) {
-                console.log('Confirm delete blocked:', { isDeleting, alreadyDeleted: deletedComplaints.has(user_id), deleteComplaintId });
+            if (isDeleting || deletedComplaints.has(id) || deleteComplaintId !== null) {
+                console.log('Confirm delete blocked:', { isDeleting, alreadyDeleted: deletedComplaints.has(id), deleteComplaintId });
                 return;
             }
 
-            deleteComplaintId = user_id;
-            console.log('Opening delete confirmation for user_id:', user_id);
+            deleteComplaintId = id;
+            console.log('Opening delete confirmation for complaint id:', id);
             
             const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             deleteModal.show();
@@ -497,15 +497,15 @@
         // Track deleted complaints to prevent duplicate deletions
         const deletedComplaints = new Set();
 
-        function deleteComplaint(user_id) {
+        function deleteComplaint(id) {
             // Multiple safeguards to prevent duplicate deletions
-            if (deleteComplaintId === null || isDeleting || deletedComplaints.has(user_id)) {
-                console.log('Delete blocked:', { deleteComplaintId, isDeleting, alreadyDeleted: deletedComplaints.has(user_id) });
+            if (deleteComplaintId === null || isDeleting || deletedComplaints.has(id)) {
+                console.log('Delete blocked:', { deleteComplaintId, isDeleting, alreadyDeleted: deletedComplaints.has(id) });
                 return;
             }
 
             // Immediately add to deleted set to prevent duplicate calls
-            deletedComplaints.add(user_id);
+            deletedComplaints.add(id);
             isDeleting = true;
 
             // Disable the delete button to prevent multiple clicks
@@ -516,9 +516,9 @@
             // Stop auto-reload during delete operation
             stopAutoReload();
 
-            console.log('Starting delete operation for user_id:', user_id);
+            console.log('Starting delete operation for complaint id:', id);
 
-            fetch(`/complaint/${user_id}/delete`, {
+            fetch(`/complaint/${id}/delete`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -527,7 +527,7 @@
             })
             .then(response => {
                 if (response.ok) {
-                    console.log('Delete successful for user_id:', user_id);
+                    console.log('Delete successful for complaint id:', id);
                     
                     // Close modal
                     const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
@@ -537,10 +537,10 @@
                     showMessage('Complaint deleted successfully', 'success');
 
                     // Remove the row from the table immediately for better UX
-                    const rowToDelete = document.querySelector(`button[onclick="confirmDeleteComplaint(${user_id})"]`).closest('tr');
+                    const rowToDelete = document.querySelector(`button[onclick="confirmDeleteComplaint(${id})"]`).closest('tr');
                     if (rowToDelete) {
                         rowToDelete.remove();
-                        console.log('Removed row from table for user_id:', user_id);
+                        console.log('Removed row from table for complaint id:', id);
                     }
 
                     // Update the complaint count
@@ -552,14 +552,14 @@
 
                 } else {
                     // If delete failed, remove from deleted set
-                    deletedComplaints.delete(user_id);
+                    deletedComplaints.delete(id);
                     throw new Error('Failed to delete complaint');
                 }
             })
             .catch(error => {
                 console.error('Error deleting complaint:', error);
                 // If delete failed, remove from deleted set
-                deletedComplaints.delete(user_id);
+                deletedComplaints.delete(id);
                 showMessage('Error deleting complaint', 'error');
             })
             .finally(() => {
@@ -574,7 +574,7 @@
                     startAutoReload();
                 }, 2000);
                 
-                console.log('Delete operation completed for user_id:', user_id);
+                console.log('Delete operation completed for complaint id:', id);
             });
         }
 

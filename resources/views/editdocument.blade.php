@@ -146,241 +146,249 @@
           <div class="card border-0">
             <h5 class="my-3 fs-1 fw-bold text-primary">EDIT DOCUMENT REQUEST</h5>
           </div>
+
+          <!-- Success Message -->
+          @if(session('success'))
+          <div class="alert alert-success alert-dismissible fade show" role="alert">
+              {{ session('success') }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          @endif
+
+          <!-- Error Message -->
+          @if(session('error'))
+          <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ session('error') }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          @endif
+
           <div>
-            <form action="{{ route('documentrequest.update', ['id' => $document->id]) }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            @method('PUT')
-            <!-- Requester Information Table -->
-            <table class="table table-borderless shadow-none">
-              <tbody>
-                <tr>
-                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 border-bottom">Requester Information</th>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Last Name</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="lastname" value="{{ $document->lastname }}" required>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">First Name</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="firstname" value="{{ $document->firstname }}" required>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Middle Name</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="middle_name" value="{{ $document->middle_name }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Birthdate</th>
-                  <td style="width: 80%;">
-                    <input type="date" class="form-control" name="birthdate" value="{{ $document->birthdate ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Age</th>
-                  <td style="width: 80%;">
-                    <input type="number" class="form-control" name="age" value="{{ $document->age ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Years of Residency</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="years_residency" value="{{ $document->years_residency ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Contact Number</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="contact_number" value="{{ $document->contact_number ?? '' }}" placeholder="Numbers only (e.g. 9171234567 without leading zero)" maxlength="10" pattern="[0-9]{1,10}">
-                    <small class="text-muted">Enter only numbers without spaces or special characters (up to 10 digits). Remove the leading zero (e.g., use 9171234567 instead of 09171234567)</small>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Address</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="home_address" value="{{ $document->home_address ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Civil Status</th>
-                  <td style="width: 80%;">
-                    <select class="form-select" name="civil_status">
-                      <option value="Single" {{ ($document->civil_status ?? '') == 'Single' ? 'selected' : '' }}>Single</option>
-                      <option value="Married" {{ ($document->civil_status ?? '') == 'Married' ? 'selected' : '' }}>Married</option>
-                      <option value="Widowed" {{ ($document->civil_status ?? '') == 'Widowed' ? 'selected' : '' }}>Widowed</option>
-                      <option value="Separated" {{ ($document->civil_status ?? '') == 'Separated' ? 'selected' : '' }}>Separated</option>
-                      <option value="Divorced" {{ ($document->civil_status ?? '') == 'Divorced' ? 'selected' : '' }}>Divorced</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Local Employment</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="local_employment" value="{{ $document->local_employment ?? '' }}">
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Business Information (if applicable) -->
-            <table class="table table-borderless shadow-none">
-              <tbody>
-                <tr>
-                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 pt-3 border-bottom">Business Information (if applicable)</th>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Business Name</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="business_name" value="{{ $document->business_name ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Business Type</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="business_type" value="{{ $document->business_type ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Business Owner</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="business_owner" value="{{ $document->business_owner ?? '' }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Business Address</th>
-                  <td style="width: 80%;">
-                    <input type="text" class="form-control" name="business_address" value="{{ $document->business_address ?? '' }}">
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Document Information Table -->
-            <table class="table table-borderless shadow-none">
-              <tbody>
-                <tr>
-                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 pt-3 border-bottom">Document Information</th>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Type of Document</th>
-                  <td style="width: 80%;">
-                    <select class="form-select" name="document_type">
-                      <option value="Barangay Residency" {{ $document->document_type == 'Barangay Residency' ? 'selected' : '' }}>Barangay Residency</option>
-                      <option value="Barangay Clearance for Renovation/Extension" {{ $document->document_type == 'Barangay Clearance for Renovation/Extension' ? 'selected' : '' }}>Barangay Clearance for Renovation/Extension</option>
-                      <option value="Barangay Business Clearance" {{ $document->document_type == 'Barangay Business Clearance' ? 'selected' : '' }}>Barangay Business Clearance</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Purpose</th>
-                  <td style="width: 80%;">
-                    <textarea class="form-control" name="purpose">{{ $document->purpose ?? '' }}</textarea>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Project Description</th>
-                  <td style="width: 80%;">
-                    <textarea class="form-control" name="project_description">{{ $document->project_description ?? '' }}</textarea>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;" class="text-danger">Status</th>
-                  <td style="width: 80%;">
-                    <select class="form-select" name="status" style="width: 25%;">
-                      <option value="pending" {{ $document->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                      <option value="inprocess" {{ $document->status == 'inprocess' ? 'selected' : '' }}>In Process</option>
-                      <option value="completed" {{ $document->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                      <option value="rejected" {{ $document->status == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Status Explanation</th>
-                  <td style="width: 80%;">
-                    <textarea class="form-control" name="status_explanation">{{ $document->status_explanation ?? '' }}</textarea>
-                  </td>
-                </tr>
-
-                <!-- Image attachments -->
-                <tr>
-                  <th style="width: 20%;">Valid ID (Front)</th>
-                  <td style="width: 80%;">
-                    @if(isset($document->validIDFront))
-                      <div class="mb-2">
-                        <img src="{{ asset($document->validIDFront) }}" alt="Valid ID Front" style="max-width: 200px;" class="img-thumbnail">
-                      </div>
-                    @endif
-                    <input type="file" class="form-control" name="validIDFront">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Valid ID (Back)</th>
-                  <td style="width: 80%;">
-                    @if(isset($document->validIDBack))
-                      <div class="mb-2">
-                        <img src="{{ asset($document->validIDBack) }}" alt="Valid ID Back" style="max-width: 200px;" class="img-thumbnail">
-                      </div>
-                    @endif
-                    <input type="file" class="form-control" name="validIDBack">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Additional Image 1</th>
-                  <td style="width: 80%;">
-                    @if(isset($document->image))
-                      <div class="mb-2">
-                        <img src="{{ asset($document->image) }}" alt="Image 1" style="max-width: 200px;" class="img-thumbnail">
-                      </div>
-                    @endif
-                    <input type="file" class="form-control" name="image">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Additional Image 2</th>
-                  <td style="width: 80%;">
-                    @if(isset($document->image2))
-                      <div class="mb-2">
-                        <img src="{{ asset($document->image2) }}" alt="Image 2" style="max-width: 200px;" class="img-thumbnail">
-                      </div>
-                    @endif
-                    <input type="file" class="form-control" name="image2">
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Additional Image 3</th>
-                  <td style="width: 80%;">
-                    @if(isset($document->image3))
-                      <div class="mb-2">
-                        <img src="{{ asset($document->image3) }}" alt="Image 3" style="max-width: 200px;" class="img-thumbnail">
-                      </div>
-                    @endif
-                    <input type="file" class="form-control" name="image3">
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Hidden ID field -->
-            <input type="hidden" name="id" value="{{ $document->id }}">
-
-            <div class="text-center my-5">
-              <a href="{{ route('documentrequest') }}" class="btn btn-secondary me-2" style="width: 15%;">Cancel</a>
-              <button type="submit" class="btn btn-primary" style="width: 15%;">Save Changes</button>
-            </div>
-            </form>
-            
-            <!-- Delete Document Form -->
-            <form action="{{ route('documentrequest.delete', ['id' => $document->id]) }}" method="POST" class="mt-3" id="deleteForm">
-                @csrf
-                @method('DELETE')
-                <div class="text-center">
-                    <button type="button" class="btn btn-danger" style="width: 15%;" onclick="confirmDelete()">Delete Document</button>
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
-            </form>
+            @endif
+            <form action="{{ route('documentrequest.update', ['id' => $document->id]) }}" method="POST" enctype="multipart/form-data" id="updateForm">
+@csrf
+@method('PUT')
+<!-- Requester Information Table -->
+<table class="table table-borderless shadow-none">
+  <tbody>
+    <tr>
+      <th colspan="2" class="text-primary fw-bold fs-3 my-5 border-bottom">Requester Information</th>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Last Name</th>
+      <td style="width: 80%;">{{ $document->lastname }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">First Name</th>
+      <td style="width: 80%;">{{ $document->firstname }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Middle Name</th>
+      <td style="width: 80%;">{{ $document->middle_name }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Birthdate</th>
+      <td style="width: 80%;">{{ $document->birthdate ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Age</th>
+      <td style="width: 80%;">{{ $document->age ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Years of Residency</th>
+      <td style="width: 80%;">{{ $document->years_residency ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Contact Number</th>
+      <td style="width: 80%;">{{ $document->contact_number ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Address</th>
+      <td style="width: 80%;">{{ $document->home_address ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Civil Status</th>
+      <td style="width: 80%;">{{ $document->civil_status ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Local Employment</th>
+      <td style="width: 80%;">{{ $document->local_employment ?? '' }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Repeat the same "display only" approach for business/renovation/residency sections -->
+
+<!-- Document Information Table -->
+<table class="table table-borderless shadow-none">
+  <tbody>
+    <tr>
+      <th colspan="2" class="text-primary fw-bold fs-3 my-5 pt-3 border-bottom">Document Information</th>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Type of Document</th>
+      <td style="width: 80%;">{{ $document->document_type }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Purpose</th>
+      <td style="width: 80%;">{{ $document->purpose ?? '' }}</td>
+    </tr>
+    <tr>
+      <th style="width: 20%;" class="text-danger">Status</th>
+      <td style="width: 80%;">
+        <select class="form-select" name="status" style="width: 25%;">
+          <option value="pending" {{ $document->status == 'pending' ? 'selected' : '' }}>Pending</option>
+          <option value="inprocess" {{ $document->status == 'inprocess' ? 'selected' : '' }}>In Process</option>
+          <option value="completed" {{ $document->status == 'completed' ? 'selected' : '' }}>Completed</option>
+          <option value="rejected" {{ $document->status == 'rejected' ? 'selected' : '' }}>Rejected</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Status Explanation</th>
+      <td style="width: 80%;">{{ $document->status_explanation ?? '' }}</td>
+    </tr>
+    <!-- ID Images from residents table -->
+    <tr>
+      <th style="width: 20%;">Resident ID (Front)</th>
+      <td style="width: 80%;">
+        @if($document->id_front)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.idFront', $document->id) }}" alt="Resident ID Front" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Resident ID (Back)</th>
+      <td style="width: 80%;">
+        @if($document->id_back)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.idBack', $document->id) }}" alt="Resident ID Back" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    
+    <!-- Valid ID Images from documentrequest table -->
+    <tr>
+      <th style="width: 20%;">Valid ID (Front)</th>
+      <td style="width: 80%;">
+        @if($document->validIDFront)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.validIDFront', $document->id) }}" alt="Valid ID Front" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Valid ID (Back)</th>
+      <td style="width: 80%;">
+        @if($document->validIDBack)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.validIDBack', $document->id) }}" alt="Valid ID Back" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    
+    <!-- Business Clearance Photos from documentrequest table -->
+    @if($document->document_type === 'Barangay Business Clearance')
+    <tr>
+      <th style="width: 20%;">Photo of Store</th>
+      <td style="width: 80%;">
+        @if($document->photo_store)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.photoStore', $document->id) }}" alt="Photo of Store" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    @endif
+    
+    <!-- Renovation Photos from documentrequest table -->
+    @if($document->document_type === 'Barangay Clearance for Renovation/Extension')
+    <tr>
+      <th style="width: 20%;">Photo of Current House</th>
+      <td style="width: 80%;">
+        @if($document->photo_current_house)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.photoCurrentHouse', $document->id) }}" alt="Photo of Current House" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Photo of Renovation Plans</th>
+      <td style="width: 80%;">
+        @if($document->photo_renovation)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.photoRenovation', $document->id) }}" alt="Photo of Renovation Plans" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    <tr>
+      <th style="width: 20%;">Photo Proof of Renovation</th>
+      <td style="width: 80%;">
+        @if($document->photo_proof)
+          <div class="mb-2">
+            <img src="{{ route('api.documentrequest.photoProof', $document->id) }}" alt="Photo Proof of Renovation" style="max-width: 200px;" class="img-thumbnail">
+          </div>
+        @endif
+      </td>
+    </tr>
+    @endif
+    
+    <!-- Additional Images from documentrequest table -->
+    @if($document->image)
+    <tr>
+      <th style="width: 20%;">Additional Image 1</th>
+      <td style="width: 80%;">
+        <div class="mb-2">
+          <img src="{{ route('api.documentrequest.image', $document->id) }}" alt="Additional Image 1" style="max-width: 200px;" class="img-thumbnail">
+        </div>
+      </td>
+    </tr>
+    @endif
+    
+    @if($document->image2)
+    <tr>
+      <th style="width: 20%;">Additional Image 2</th>
+      <td style="width: 80%;">
+        <div class="mb-2">
+          <img src="{{ route('api.documentrequest.image2', $document->id) }}" alt="Additional Image 2" style="max-width: 200px;" class="img-thumbnail">
+        </div>
+      </td>
+    </tr>
+    @endif
+    
+    @if($document->image3)
+    <tr>
+      <th style="width: 20%;">Additional Image 3</th>
+      <td style="width: 80%;">
+        <div class="mb-2">
+          <img src="{{ route('api.documentrequest.image3', $document->id) }}" alt="Additional Image 3" style="max-width: 200px;" class="img-thumbnail">
+        </div>
+      </td>
+    </tr>
+    @endif
+  </tbody>
+</table>
+<input type="hidden" name="id" value="{{ $document->id }}">
+<div class="text-center my-5">
+  <a href="{{ route('documentrequest') }}" class="btn btn-secondary me-2" style="width: 15%;">Cancel</a>
+  <button type="submit" class="btn btn-primary" style="width: 15%;">Save Changes</button>
+</div>
+</form>
             
             <script>
                 function confirmDelete() {
@@ -388,6 +396,35 @@
                         document.getElementById('deleteForm').submit();
                     }
                 }
+
+                function toggleDocumentFields() {
+                    const documentType = document.getElementById('document_type').value;
+                    const businessSection = document.getElementById('business_section');
+                    const renovationSection = document.getElementById('renovation_section');
+                    const residencySection = document.getElementById('residency_section');
+
+                    // Hide all sections first
+                    businessSection.style.display = 'none';
+                    renovationSection.style.display = 'none';
+                    residencySection.style.display = 'none';
+
+                    // Show relevant sections based on document type
+                    if (documentType === 'Barangay Business Clearance') {
+                        businessSection.style.display = 'block';
+                        console.log('Showing business section');
+                    } else if (documentType === 'Barangay Clearance for Renovation/Extension') {
+                        renovationSection.style.display = 'block';
+                        console.log('Showing renovation section');
+                    } else if (documentType === 'Barangay Residency') {
+                        residencySection.style.display = 'block';
+                        console.log('Showing residency section');
+                    }
+                }
+
+                // Initialize the form when page loads
+                document.addEventListener('DOMContentLoaded', function() {
+                    toggleDocumentFields();
+                });
             </script>
           </div>
         </div>
@@ -397,6 +434,6 @@
 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('js/live-updates.js') }}"></script>
+    {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
   </body>
 </html>

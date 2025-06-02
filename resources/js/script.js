@@ -25,11 +25,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Function to scroll to bottom of chat
   function scrollToBottom() {
-      chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (chatMessages) {
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
   }
 
-  // Initial scroll to bottom
-  scrollToBottom();
+  // Initial scroll to bottom only if we're on a chat page
+  if (document.getElementById("chat-messages")) {
+      scrollToBottom();
+  }
 
   // Handle form submission
   chatForm.addEventListener("submit", function (e) {

@@ -188,7 +188,7 @@
                       <div class="btn-group" role="group">
                         <button type="button" class="btn btn-outline-danger btn-sm" 
                                 data-bs-toggle="modal" 
-                                data-bs-target="#deleteFeedbackModal{{ $feedback->user_id }}">
+                                data-bs-target="#deleteFeedbackModal{{ $feedback->id }}">
                           <i class="bi bi-trash"></i>
                         </button>
                       </div>
@@ -241,11 +241,11 @@
 
         <!-- Delete Feedback Modals -->
         @foreach($feedbacks as $feedback)
-        <div class="modal fade" id="deleteFeedbackModal{{ $feedback->user_id }}" tabindex="-1" aria-labelledby="deleteFeedbackModalLabel{{ $feedback->user_id }}" aria-hidden="true">
+        <div class="modal fade" id="deleteFeedbackModal{{ $feedback->id }}" tabindex="-1" aria-labelledby="deleteFeedbackModalLabel{{ $feedback->id }}" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="deleteFeedbackModalLabel{{ $feedback->user_id }}">Delete Feedback</h5>
+                <h5 class="modal-title" id="deleteFeedbackModalLabel{{ $feedback->id }}">Delete Feedback</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
@@ -256,7 +256,7 @@
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ route('feedback.destroy', $feedback->user_id) }}" method="POST" style="display: inline;">
+                <form action="{{ route('feedback.destroy', $feedback->id) }}" method="POST" style="display: inline;">
                   @csrf
                   @method('DELETE')
                   <button type="submit" class="btn btn-danger">Delete</button>

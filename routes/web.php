@@ -39,6 +39,33 @@ Route::prefix('api/residents/{id}')->middleware('auth')->group(function () {
     Route::get('/id-images', [App\Http\Controllers\ResidentController::class, 'getIDImages'])->name('api.residents.get-id-images');
 });
 
+// API Routes for Complaints
+Route::prefix('api/complaints')->group(function () {
+    // Get complaint photo
+    Route::get('{id}/photo', [App\Http\Controllers\ComplaintController::class, 'getPhoto'])->name('api.complaints.photo');
+    
+    // Get complaint video
+    Route::get('{id}/video', [App\Http\Controllers\ComplaintController::class, 'getVideo'])->name('api.complaints.video');
+});
+
+// API Routes for Document Request Photos
+Route::prefix('api/documents')->group(function () {
+    // Business clearance photos
+    Route::get('{id}/photo-store', [DocumentRequestController::class, 'getPhotoStore'])->name('api.documents.photo-store');
+    
+    // Renovation/Extension photos
+    Route::get('{id}/photo-current-house', [DocumentRequestController::class, 'getPhotoCurrentHouse'])->name('api.documents.photo-current-house');
+    Route::get('{id}/photo-renovation', [DocumentRequestController::class, 'getPhotoRenovation'])->name('api.documents.photo-renovation');
+    Route::get('{id}/photo-proof', [DocumentRequestController::class, 'getPhotoProof'])->name('api.documents.photo-proof');
+    
+    // ID and additional images
+    Route::get('{id}/valid-id-front', [DocumentRequestController::class, 'getValidIDFront'])->name('api.documents.valid-id-front');
+    Route::get('{id}/valid-id-back', [DocumentRequestController::class, 'getValidIDBack'])->name('api.documents.valid-id-back');
+    Route::get('{id}/image', [DocumentRequestController::class, 'getImage'])->name('api.documents.image');
+    Route::get('{id}/image2', [DocumentRequestController::class, 'getImage2'])->name('api.documents.image2');
+    Route::get('{id}/image3', [DocumentRequestController::class, 'getImage3'])->name('api.documents.image3');
+});
+
 // Dashboard routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/dashboard/refresh', [DashboardController::class, 'refreshData'])->middleware('auth')->name('dashboard.refresh');
@@ -86,8 +113,9 @@ Route::post('/messages', [App\Http\Controllers\MessageController::class, 'store'
 Route::get('/feedback', [App\Http\Controllers\FeedbackController::class, 'index'])->middleware('auth')->name('feedback');
 Route::post('/feedback', [App\Http\Controllers\FeedbackController::class, 'store'])->middleware('auth')->name('feedback.store');
 Route::get('/feedback/create', [App\Http\Controllers\FeedbackController::class, 'create'])->middleware('auth')->name('feedback.create');
-Route::get('/feedback/{feedback}/edit', [App\Http\Controllers\FeedbackController::class, 'edit'])->middleware('auth')->name('feedback.edit');
-Route::delete('/feedback/{feedback}', [App\Http\Controllers\FeedbackController::class, 'destroy'])->middleware('auth')->name('feedback.destroy');
+Route::get('/feedback/{id}/edit', [App\Http\Controllers\FeedbackController::class, 'edit'])->middleware('auth')->name('feedback.edit');
+Route::put('/feedback/{id}', [App\Http\Controllers\FeedbackController::class, 'update'])->middleware('auth')->name('feedback.update');
+Route::delete('/feedback/{id}', [App\Http\Controllers\FeedbackController::class, 'destroy'])->middleware('auth')->name('feedback.destroy');
 // Residents routes
 Route::get('/residents', [App\Http\Controllers\ResidentController::class, 'index'])->middleware('auth')->name('residents');
 Route::get('/residents/{id}', [App\Http\Controllers\ResidentController::class, 'show'])->middleware('auth')->name('residents.show');
@@ -208,20 +236,21 @@ Route::get('/resident-image/{id}', function($id) {
 // Use the DashboardController if it's available and has functionality
 Route::get('/documentrequest', [DocumentRequestController::class, 'index'])->middleware('auth')->name('documentrequest');
 Route::get('/documentrequests/data', [DocumentRequestController::class, 'fetchData'])->middleware('auth')->name('documentrequests.data');
+Route::get('/documentrequests/debug', [DocumentRequestController::class, 'debug'])->middleware('auth')->name('documentrequests.debug');
 
 Route::get('/complaint', [ComplaintController::class, 'index'])->middleware('auth')->name('complaint');
 Route::get('/complaints/data', [ComplaintController::class, 'fetchData'])->middleware('auth')->name('complaints.data');
 Route::get('/complaints/last-update', [ComplaintController::class, 'getLastUpdate'])->middleware('auth')->name('complaints.last-update');
 
 // Document request edit, update and delete routes
-Route::get('/documentrequest/{id}/edit', [DocumentRequestController::class, 'edit'])->name('documentrequest.edit');
-Route::match(['post', 'put'], '/documentrequest/{id}/update', [DocumentRequestController::class, 'update'])->name('documentrequest.update');
-Route::delete('/documentrequest/{id}/delete', [DocumentRequestController::class, 'destroy'])->name('documentrequest.delete');
+Route::get('/documentrequest/{id}/edit', [DocumentRequestController::class, 'edit'])->middleware('auth')->name('documentrequest.edit');
+Route::match(['post', 'put'], '/documentrequest/{id}/update', [DocumentRequestController::class, 'update'])->middleware('auth')->name('documentrequest.update');
+Route::delete('/documentrequest/{id}/delete', [DocumentRequestController::class, 'destroy'])->middleware('auth')->name('documentrequest.delete');
 
 // Complaint edit, update and delete routes
-Route::get('/complaint/{user_id}/edit', [ComplaintController::class, 'edit'])->name('complaint.edit');
-Route::put('/complaint/{user_id}/update', [ComplaintController::class, 'update'])->name('complaint.update');
-Route::delete('/complaint/{user_id}/delete', [ComplaintController::class, 'destroy'])->middleware('auth')->name('complaint.delete');
+Route::get('/complaint/{id}/edit', [ComplaintController::class, 'edit'])->name('complaint.edit');
+Route::put('/complaint/{id}/update', [ComplaintController::class, 'update'])->name('complaint.update');
+Route::delete('/complaint/{id}/delete', [ComplaintController::class, 'destroy'])->middleware('auth')->name('complaint.delete');
 Route::post('/complaints/analyze-sentiments', [ComplaintController::class, 'analyzeSentiments'])->name('complaints.analyze-sentiments');
 
 // API route for AJAX sentiment analysis
@@ -321,9 +350,9 @@ Route::get('/news/{id}/edit', [App\Http\Controllers\NewsController::class, 'edit
 Route::put('/news/{id}/update', [App\Http\Controllers\NewsController::class, 'update'])->name('news.update');
 Route::delete('/news/{id}/delete', [App\Http\Controllers\NewsController::class, 'destroy'])->name('news.delete');
 
-// Live update routes for real-time functionality
-Route::get('/live-updates/stream', [App\Http\Controllers\LiveUpdateController::class, 'stream'])->middleware('auth')->name('live.stream');
-Route::post('/live-updates/trigger', [App\Http\Controllers\LiveUpdateController::class, 'triggerUpdate'])->middleware('auth')->name('live.trigger');
+// Live update routes have been disabled to stop auto-refresh functionality
+// Route::get('/live-updates/stream', [App\Http\Controllers\LiveUpdateController::class, 'stream'])->middleware('auth')->name('live.stream');
+// Route::post('/live-updates/trigger', [App\Http\Controllers\LiveUpdateController::class, 'triggerUpdate'])->middleware('auth')->name('live.trigger');
 
 // Messages test route for debugging
 Route::get('/messages/test', function() {
