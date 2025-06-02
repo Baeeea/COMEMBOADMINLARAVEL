@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
   <head>
     <meta charset="utf-8">
@@ -59,7 +60,7 @@
             <li class="dropdown-header text-center">
                 <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
-            <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><a class="dropdown-item fw-normal me-5" href="{{ route('my.profile') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -174,80 +175,93 @@
             @endif
           </div>
           <div>
-            <form id="complaint-form" action="{{ route('complaint.update', $complaint->user_id) }}" method="POST" onsubmit="return validateForm(event)">
+            <form id="complaint-form" action="{{ route('complaint.update', $complaint->user_id) }}" method="POST" enctype="multipart/form-data" onsubmit="return validateForm(event)">
               @csrf
               @method('PUT')
-            <!-- Requester Information Table -->
-            <table class="table table-borderless shadow-none">
-              <tbody>
-                <tr>
-                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 border-bottom">Requester Information</th>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Last Name</th>
-                  <td style="width: 80%;">{{ $complaint->lastname }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">First Name</th>
-                  <td style="width: 80%;">{{ $complaint->firstname }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Middle Name</th>
-                  <td style="width: 80%;">{{ $complaint->middle_name }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Birthdate</th>
-                  <td style="width: 80%;">{{ $complaint->birthdate }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Age</th>
-                  <td style="width: 80%;">{{ $complaint->age }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Contact Number</th>
-                  <td style="width: 80%;">{{ $complaint->contact_number }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Address</th>
-                  <td style="width: 80%;">{{ $complaint->home_address }}</td>
-                </tr>
-              </tbody>
-            </table>
-
             <!-- Complaint Information Table -->
             <table class="table table-borderless shadow-none">
               <tbody>
                 <tr>
-                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 pt-3 border-bottom">Complaint Information</th>
+                  <th colspan="2" class="text-primary fw-bold fs-3 my-5 border-bottom">Complaint Information</th>
                 </tr>
                 <tr>
-                  <th style="width: 20%;">Type of Complaint</th>
-                  <td style="width: 80%;">{{ $complaint->complaint_type }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Type of Disturbance</th>
-                  <td style="width: 80%;">{{ $complaint->disturbance_type ?? 'N/A' }}</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Location</th>
+                  <th style="width: 20%;">Complaint Type</th>
                   <td style="width: 80%;">
-                    <input type="text" class="form-control" name="location" value="{{ $complaint->location }}" style="width: 70%;">
+                    <input type="text" class="form-control" name="complaint_type" value="{{ $complaint->complaint_type }}" style="width: 70%;">
                   </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Date and Time</th>
-                  <td style="width: 80%;">{{ $complaint->dateandtime }}</td>
                 </tr>
                 <tr>
                   <th style="width: 20%;">Description</th>
                   <td style="width: 80%;">
-                    <textarea class="form-control" name="specific_description" id="specific_description" rows="3" style="width: 80%;">{{ $complaint->specific_description }}</textarea>
-
+                    <textarea class="form-control" name="description" id="description" rows="3" style="width: 80%;">{{ $complaint->description }}</textarea>
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Date of Occurrence</th>
+                  <td style="width: 80%;">
+                    <input type="datetime-local" class="form-control" name="date_occurrence" value="{{ $complaint->date_occurrence ? \Carbon\Carbon::parse($complaint->date_occurrence)->format('Y-m-d\TH:i') : '' }}" style="width: 70%;">
                   </td>
                 </tr>
                 <tr>
                   <th style="width: 20%;">Frequency</th>
-                  <td style="width: 80%;">{{ $complaint->frequency }}</td>
+                  <td style="width: 80%;">
+                    <input type="text" class="form-control" name="frequency" value="{{ $complaint->frequency }}" style="width: 70%;">
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">People Involved</th>
+                  <td style="width: 80%;">
+                    <textarea class="form-control" name="people_involved" rows="2" style="width: 80%;">{{ $complaint->people_involved }}</textarea>
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Location of Occurrence</th>
+                  <td style="width: 80%;">
+                    <input type="text" class="form-control" name="location_occurrence" value="{{ $complaint->location_occurrence }}" style="width: 70%;">
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Photo</th>
+                  <td style="width: 80%;">
+                    <input type="file" class="form-control" name="photo" accept="image/*" style="width: 70%;">
+                    @if($complaint->photo)
+                      <small class="text-muted">Current: {{ $complaint->photo }}</small>
+                    @endif
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Video</th>
+                  <td style="width: 80%;">
+                    <input type="file" class="form-control" name="video" accept="video/*" style="width: 70%;">
+                    @if($complaint->video)
+                      <small class="text-muted">Current: {{ $complaint->video }}</small>
+                    @endif
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Created At</th>
+                  <td style="width: 80%;">{{ $complaint->created_at ? \Carbon\Carbon::parse($complaint->created_at)->format('M d, Y h:i A') : 'N/A' }}</td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Phases</th>
+                  <td style="width: 80%;">
+                    <input type="text" class="form-control" name="phases" value="{{ $complaint->phases }}" style="width: 70%;">
+                  </td>
+                </tr>
+                <tr>
+                  <th style="width: 20%;">Phase Status</th>
+                  <td style="width: 80%;">
+                    <select class="form-select" style="width: 50%;" name="phase_status">
+                      <option value="pending" {{ $complaint->phase_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                      <option value="phase1" {{ $complaint->phase_status == 'phase1' ? 'selected' : '' }}>Phase 1: To be Reviewed</option>
+                      <option value="phase2" {{ $complaint->phase_status == 'phase2' ? 'selected' : '' }}>Phase 2: Additional Requirements</option>
+                      <option value="phase3" {{ $complaint->phase_status == 'phase3' ? 'selected' : '' }}>Phase 3: Complaint Investigation</option>
+                      <option value="phase4" {{ $complaint->phase_status == 'phase4' ? 'selected' : '' }}>Phase 4: Action Taken/Resolution</option>
+                      <option value="phase5" {{ $complaint->phase_status == 'phase5' ? 'selected' : '' }}>Phase 5: Final Status and Feedback</option>
+                      <option value="completed" {{ $complaint->phase_status == 'completed' ? 'selected' : '' }}>Completed</option>
+                      <option value="rejected" {{ $complaint->phase_status == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr>
                   <th style="width: 20%;">Sentiment</th>
@@ -270,47 +284,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <th style="width: 20%;">Priority Level</th>
-                  <td style="width: 80%;">Medium</td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Status</th>
+                  <th style="width: 20%;">Explanation</th>
                   <td style="width: 80%;">
-                    <select class="form-select" style="width: 50%;" name="status">
-                      <option value="pending" {{ $complaint->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                      <option value="phase1" {{ $complaint->status == 'phase1' ? 'selected' : '' }}>Phase 1: To be Reviewed</option>
-                      <option value="phase2" {{ $complaint->status == 'phase2' ? 'selected' : '' }}>Phase 2: Additional Requirements</option>
-                      <option value="phase3" {{ $complaint->status == 'phase3' ? 'selected' : '' }}>Phase 3: Complaint Investigation</option>
-                      <option value="phase4" {{ $complaint->status == 'phase4' ? 'selected' : '' }}>Phase 4: Action Taken/Resolution</option>
-                      <option value="phase5" {{ $complaint->status == 'phase5' ? 'selected' : '' }}>Phase 5: Final Status and Feedback</option>
-                      <option value="completed" {{ $complaint->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                      <option value="rejected" {{ $complaint->status == 'rejected' ? 'selected' : '' }}>Rejected</option>
-                    </select>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Status Explanation</th>
-                  <td style="width: 80%;">
-                    <textarea class="form-control" rows="5" name="status_explanation" placeholder="Enter status explanation here...">{{ $complaint->status_explanation }}</textarea>
-                  </td>
-                </tr>
-                <tr>
-                  <th style="width: 20%;">Valid ID Attachment</th>
-                  <td style="width: 80%;">
-                    <div class="d-flex">
-                      <div class="border p-3 text-center me-2" style="width: 25%;">
-                        <i class="bi bi-file-earmark-image fs-1"></i>
-                        <p>Valid ID Attachment</p>
-                      </div>
-                      <div class="border p-3 text-center me-2" style="width: 25%;">
-                        <i class="bi bi-file-earmark-image fs-1"></i>
-                        <p>Evidence #1</p>
-                      </div>
-                      <div class="border p-3 text-center" style="width: 25%;">
-                        <i class="bi bi-file-earmark-image fs-1"></i>
-                        <p>Evidence #2</p>
-                      </div>
-                    </div>
+                    <textarea class="form-control" rows="5" name="explanation" placeholder="Enter explanation here...">{{ $complaint->explanation }}</textarea>
                   </td>
                 </tr>
               </tbody>
@@ -335,9 +311,9 @@
             console.log('DOM loaded, initializing sentiment analysis...');
             
             // Get all necessary elements
-            const descTextarea = document.getElementById('specific_description');
+            const descTextarea = document.getElementById('description');
             const summaryBadge = document.getElementById('sentiment-summary-badge');
-            const statusSelect = document.querySelector('select[name="status"]');
+            const statusSelect = document.querySelector('select[name="phase_status"]');
             const userId = {{ $complaint->user_id }};
             let analyzeTimeout = null;
             
@@ -540,7 +516,7 @@
             const analyzeBtn = document.getElementById('analyzeSentimentsBtn');
             if (analyzeBtn) {
                 analyzeBtn.addEventListener('click', function() {
-                    const text = document.getElementById('specific_description').value.trim();
+                    const text = document.getElementById('description').value.trim();
                     if (!text) {
                         alert('Please enter a description to analyze');
                         return;
@@ -571,12 +547,12 @@
         function validateForm(e) {
             e.preventDefault(); // Always prevent default form submission
 
-            const status = document.querySelector('select[name="status"]').value;
-            const statusExplanation = document.querySelector('textarea[name="status_explanation"]').value;
+            const phaseStatus = document.querySelector('select[name="phase_status"]').value;
+            const explanation = document.querySelector('textarea[name="explanation"]').value;
 
             // Basic validation
-            if (!status) {
-                alert('Please select a status.');
+            if (!phaseStatus) {
+                alert('Please select a phase status.');
                 return false;
             }
 
@@ -600,7 +576,7 @@
         }
 
         // Auto-resize textarea
-        const textarea = document.querySelector('textarea[name="status_explanation"]');
+        const textarea = document.querySelector('textarea[name="explanation"]');
         if (textarea) {
             textarea.addEventListener('input', function() {
                 this.style.height = 'auto';
@@ -608,16 +584,16 @@
             });
         }
 
-        // Character counter for status explanation
-        const statusTextarea = document.querySelector('textarea[name="status_explanation"]');
-        if (statusTextarea) {
+        // Character counter for explanation
+        const explanationTextarea = document.querySelector('textarea[name="explanation"]');
+        if (explanationTextarea) {
             const maxLength = 500;
             const counterDiv = document.createElement('div');
             counterDiv.className = 'text-muted small mt-1';
-            counterDiv.innerHTML = `<span id="char-count">${statusTextarea.value.length}</span>/${maxLength} characters`;
-            statusTextarea.parentNode.appendChild(counterDiv);
+            counterDiv.innerHTML = `<span id="char-count">${explanationTextarea.value.length}</span>/${maxLength} characters`;
+            explanationTextarea.parentNode.appendChild(counterDiv);
 
-            statusTextarea.addEventListener('input', function() {
+            explanationTextarea.addEventListener('input', function() {
                 const charCount = this.value.length;
                 document.getElementById('char-count').textContent = charCount;
 

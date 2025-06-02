@@ -7,17 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class Resident extends Model
 {
-    use HasFactory;
-
-    /**
+    use HasFactory;    /**
      * The table associated with the model.
      */
     protected $table = 'residents';
 
     /**
-     * The attributes that are mass assignable.
+     * Indicates if the model should be timestamped.
      */
-    protected $fillable = [
+    public $timestamps = false;
+
+    /**
+     * The attributes that are mass assignable.
+     */    protected $fillable = [
         'firstname',
         'lastname',
         'username',
@@ -38,8 +40,10 @@ class Resident extends Model
         'profile',
         'validIDFront',
         'validIDBack',
+        'id_front',
+        'id_back',
         'birthdate'
-    ];    /**
+    ];/**
      * The attributes that should be hidden for serialization.
      */
     protected $hidden = [
@@ -76,13 +80,19 @@ class Resident extends Model
     public function hasAttribute($attribute)
     {
         return array_key_exists($attribute, $this->attributes);
-    }
-
-    /**
+    }    /**
      * Get raw attribute value without any mutators
      */
     public function getRawAttribute($attribute)
     {
         return $this->getOriginal($attribute);
+    }
+
+    /**
+     * Get the complaints for the resident.
+     */
+    public function complaints()
+    {
+        return $this->hasMany(ComplaintRequest::class, 'user_id', 'user_id');
     }
 }

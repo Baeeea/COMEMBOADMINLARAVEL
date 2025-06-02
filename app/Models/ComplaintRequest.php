@@ -18,9 +18,6 @@ class ComplaintRequest extends Model
     // Fillable fields for mass assignment
     protected $fillable = [
         'user_id',
-        'firstname',
-        'lastname',
-        'middle_name',
         'birthdate',
         'age',
         'contact_number',
@@ -30,14 +27,25 @@ class ComplaintRequest extends Model
         'location',
         'dateandtime',
         'frequency',
-        'specific_description',
-        'status',
+        'explanation',
+        'phase_status',
         'status_explanation',
         'sentiment',
-        'created_at',
-        'updated_at'
+        'created_at'
     ];
 
-    // Use timestamps
+    // Use only created_at timestamp (updated_at column removed)
     public $timestamps = true;
+    
+    // Define only created_at timestamp
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = null;
+
+    /**
+     * Get the resident that owns the complaint.
+     */
+    public function resident()
+    {
+        return $this->belongsTo(Resident::class, 'user_id', 'user_id');
+    }
 }

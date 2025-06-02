@@ -182,7 +182,7 @@
                   @forelse($feedbacks as $feedback)
                   <tr>
                     <td class="py-4">{{ $feedback->user->name ?? 'Unknown User' }}</td>
-                    <td class="py-4">{{ $feedback->content }}</td>
+                    <td class="py-4">{{ $feedback->feedback }}</td>
                     <td class="py-4">{{ $feedback->created_at ? $feedback->created_at->format('m / d / Y') : 'N/A' }}</td>
                     <td class="py-4">
                       <div class="btn-group" role="group">
@@ -226,8 +226,8 @@
                     </select>
                   </div>
                   <div class="mb-3">
-                    <label for="content" class="form-label">Feedback Message</label>
-                    <textarea class="form-control" id="content" name="content" rows="4" placeholder="Enter feedback message..." required maxlength="1000"></textarea>
+                    <label for="feedback" class="form-label">Feedback Message</label>
+                    <textarea class="form-control" id="feedback" name="feedback" rows="4" placeholder="Enter feedback message..." required maxlength="1000"></textarea>
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -251,7 +251,7 @@
               <div class="modal-body">
                 <p>Are you sure you want to delete this feedback?</p>
                 <p><strong>User:</strong> {{ $feedback->user->name ?? 'Unknown User' }}</p>
-                <p><strong>Message:</strong> {{ Str::limit($feedback->content, 100) }}</p>
+                <p><strong>Message:</strong> {{ Str::limit($feedback->feedback, 100) }}</p>
                 <p class="text-danger"><strong>This action cannot be undone.</strong></p>
               </div>
               <div class="modal-footer">

@@ -30,12 +30,16 @@ class LiveUpdateManager {
         this.eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);
             console.log('Live update received:', data);
-        };
-
-        this.eventSource.addEventListener('database_update', (event) => {
+        };        this.eventSource.addEventListener('database_update', (event) => {
             const data = JSON.parse(event.data);
             console.log('Database update detected:', data);
             this.handleDatabaseUpdate(data);
+        });
+
+        this.eventSource.addEventListener('table_update', (event) => {
+            const data = JSON.parse(event.data);
+            console.log('Table update detected:', data);
+            this.handleTableUpdate(data);
         });
 
         this.eventSource.addEventListener('keepalive', (event) => {
@@ -48,44 +52,99 @@ class LiveUpdateManager {
             this.updateConnectionStatus(false);
             this.handleError();
         };
-    }
-
-    handleDatabaseUpdate(data) {
-        // Show notification
-        this.showUpdateNotification(data.message);
+    }    handleDatabaseUpdate(data) {
+        // Show notification with more details
+        const message = data.details && data.details.message 
+            ? data.details.message 
+            : 'Database updated - refreshing content...';
         
-        // Auto-reload page after a short delay
+        this.showUpdateNotification(message, data.details);
+        
+        // Auto-reload page after a short delay (reduced from 1000ms to 500ms for faster response)
         setTimeout(() => {
             window.location.reload();
-        }, 1000);
+        }, 500);
     }
 
-    showUpdateNotification(message) {
-        // Create notification element
+    handleTableUpdate(data) {
+        // Handle specific table updates without full page reload for some cases
+        const message = `${data.message} - updating...`;
+        this.showUpdateNotification(message, { table: data.table });
+        
+        // For resident table updates, try to update specific elements first
+        if (data.table === 'residents' && this.canUpdateInPlace()) {
+            this.updateResidentElements();
+            // Still reload after a delay to ensure consistency
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            // For other tables or if in-place update isn't possible, reload faster
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
+        }
+    }
+
+    canUpdateInPlace() {
+        // Check if we're on a resident page where we can update elements in place
+        return window.location.pathname.includes('/residents/') || 
+               document.querySelector('#residents-table') !== null ||
+               document.querySelector('.resident-status') !== null;
+    }
+
+    updateResidentElements() {
+        // Try to update resident status elements without full reload
+        const statusElements = document.querySelectorAll('.resident-status, [class*="text-success"], [class*="text-danger"]');
+        statusElements.forEach(element => {
+            if (element.textContent.includes('Verified') || element.textContent.includes('Not Verified')) {
+                element.style.opacity = '0.6';
+                element.innerHTML += ' <i class="bi bi-arrow-clockwise text-primary"></i>';
+            }
+        });
+    }    showUpdateNotification(message, details = {}) {
+        // Create notification element with enhanced styling
         const notification = document.createElement('div');
         notification.className = 'alert alert-info alert-dismissible fade show position-fixed';
         notification.style.cssText = `
             top: 20px;
             right: 20px;
             z-index: 9999;
-            min-width: 300px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            min-width: 320px;
+            max-width: 400px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            border-left: 4px solid #17a2b8;
+            animation: slideInRight 0.3s ease-out;
         `;
         
+        let detailsHtml = '';
+        if (details.table) {
+            detailsHtml = `<small class="d-block mt-1 text-muted">Table: ${details.table}</small>`;
+        }
+        if (details.updated_fields && details.updated_fields.length > 0) {
+            detailsHtml += `<small class="d-block text-muted">Updated: ${details.updated_fields.join(', ')}</small>`;
+        }
+        
         notification.innerHTML = `
-            <i class="bi bi-arrow-clockwise me-2"></i>
-            ${message}
+            <div class="d-flex align-items-start">
+                <i class="bi bi-arrow-clockwise me-2 text-info" style="font-size: 1.1em; margin-top: 2px;"></i>
+                <div class="flex-grow-1">
+                    <strong>${message}</strong>
+                    ${detailsHtml}
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
 
         document.body.appendChild(notification);
 
-        // Auto-remove after 5 seconds
+        // Auto-remove after 4 seconds (reduced from 5)
         setTimeout(() => {
             if (notification.parentNode) {
-                notification.remove();
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
             }
-        }, 5000);
+        }, 4000);
     }
 
     updateConnectionStatus(connected) {

@@ -59,7 +59,7 @@
             <li class="dropdown-header text-center">
                 <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
-            <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><a class="dropdown-item fw-normal me-5" href="{{ route('my.profile') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -161,16 +161,16 @@
                 <tbody>
                   @forelse($residents as $resident)
                     <tr>
-                      <td class="py-4">{{ isset($resident->lastname) && isset($resident->firstname) ? $resident->lastname . ', ' . $resident->firstname : ($resident->name ?? 'N/A') }}</td>
+                      <td class="py-4">{{ isset($resident->last_name) && isset($resident->first_name) ? $resident->last_name . ', ' . $resident->first_name : ($resident->name ?? 'N/A') }}</td>
                       <td class="py-4">{{ isset($resident->username) ? '@' . $resident->username : ($resident->email ?? 'N/A') }}</td>
                       <td class="py-4">{{ $resident->contact_number ?: ($resident->phone ?: ($resident->mobile ?: ($resident->phone_number ?: 'N/A'))) }}</td>
-                      <td class="py-4 {{ ($resident->verified ?? 0) ? 'text-success' : 'text-danger' }}">
-                        {{ ($resident->verified ?? 0) ? 'Verified' : 'Not Verified' }}
+                      <td class="py-4 {{ ($resident->status === 'Verified') ? 'text-success' : 'text-danger' }}">
+                        {{ $resident->status ?: 'Not Verified' }}
                       </td>
                       <td class="py-4">
-                        <a href="{{ route('residents.view', $resident->user_id) }}" class="btn btn-primary btn-sm px-3 me-2">View</a>
+                        <a href="{{ route('residents.view', $resident->id) }}" class="btn btn-primary btn-sm px-3 me-2">View</a>
                         <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal" 
-                                onclick="setDeleteAction('{{ route('residents.destroy', $resident->user_id) }}', '{{ isset($resident->firstname) ? $resident->firstname . ' ' . ($resident->lastname ?? '') : ($resident->name ?? 'this resident') }}')">
+                                onclick="setDeleteAction('{{ route('residents.destroy', $resident->id) }}', '{{ isset($resident->firstname) ? $resident->firstname . ' ' . ($resident->lastname ?? '') : ($resident->name ?? 'this resident') }}')">
                           Delete
                         </button>
                       </td>

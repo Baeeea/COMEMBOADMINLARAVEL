@@ -40,14 +40,14 @@
           <!-- Admin Account Dropdown -->
           <li class="nav-item dropdown dropdown-center">
         <a class="nav-link dropdown-toggle text-light d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="{{ Auth::user()->profile ? route('profile.image', ['id' => Auth::user()->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF&size=30' }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
-            <span>{{ Auth::user()->name ?? 'K. Anderson' }}</span>
+            <img src="{{ ($admin ?? Auth::user())->profile ? route('profile.image', ['id' => ($admin ?? Auth::user())->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(($admin ?? Auth::user())->name).'&color=7F9CF5&background=EBF4FF&size=30' }}" alt="Admin Avatar" width="30" height="30" class="rounded-circle me-2">
+            <span>{{ ($admin ?? Auth::user())->name ?? 'K. Anderson' }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end admin-dropdown bg-secondary" aria-labelledby="adminDropdown">
             <li class="dropdown-header text-center">
-                <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
+                <strong class="text-primary">{{ ($admin ?? Auth::user())->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
-            <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><a class="dropdown-item fw-normal me-5" href="{{ route('profile') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -135,12 +135,12 @@
             <aside class="position-fixed" style="width: 20%; height: 100vh; margin-left: -12px; border-right: 5px solid #ccc; overflow-y: auto;">
               <div class="h-100 p-4 bg-secondary-subtle">                <div class="text-center">
                   <!-- Profile Image -->
-                  <img src="{{ Auth::user()->profile ? route('profile.image', ['id' => Auth::user()->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF&size=100' }}" 
+                  <img src="{{ ($admin ?? Auth::user())->profile ? route('profile.image', ['id' => ($admin ?? Auth::user())->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(($admin ?? Auth::user())->name).'&color=7F9CF5&background=EBF4FF&size=100' }}" 
                        alt="Profile Picture" 
                        class="img-fluid rounded-circle mb-3" 
                        style="width: 100px; height: 100px; object-fit: cover;">
-                  <h5 class="card-title mb-1">{{ Auth::user()->name }}</h5>
-                  <p class="text-muted">{{ Auth::user()->email }}</p>
+                  <h5 class="card-title mb-1">{{ ($admin ?? Auth::user())->name }}</h5>
+                  <p class="text-muted">{{ ($admin ?? Auth::user())->email }}</p>
                 </div>
                 <div class="position-absolute" style="left: 52%; transform: translateX(-50%); bottom: 15%;">
                   <button class="btn btn-primary mb-3" style="width: 150px;" data-bs-toggle="modal" data-bs-target="#editAccountModal">Edit Account</button>
@@ -160,32 +160,32 @@
                     </tr>
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Name</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ Auth::user()->name ?? 'N/A' }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ($admin ?? Auth::user())->name ?? 'N/A' }}</td>
                     </tr>
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Role</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ ucfirst(Auth::user()->role ?? 'Admin') }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ucfirst(($admin ?? Auth::user())->role ?? 'Admin') }}</td>
                     </tr>
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Email</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ Auth::user()->email ?? 'N/A' }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ($admin ?? Auth::user())->email ?? 'N/A' }}</td>
                     </tr>
-                    @if(Auth::user()->firstname || Auth::user()->lastname)
+                    @if(($admin ?? Auth::user())->firstname || ($admin ?? Auth::user())->lastname)
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Full Name</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ Auth::user()->firstname }} {{ Auth::user()->lastname }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ($admin ?? Auth::user())->firstname }} {{ ($admin ?? Auth::user())->lastname }}</td>
                     </tr>
                     @endif
-                    @if(Auth::user()->contact_number)
+                    @if(($admin ?? Auth::user())->contact_number)
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Contact Number</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ Auth::user()->contact_number }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ($admin ?? Auth::user())->contact_number }}</td>
                     </tr>
                     @endif
-                    @if(Auth::user()->created_at)
+                    @if(($admin ?? Auth::user())->created_at)
                     <tr class="my-3">
                       <th scope="col" class="text-primary py-3 fs-5" style="width: 30%;">Member Since</th>
-                      <td class="py-3 fs-5" style="width: 70%;">{{ Auth::user()->created_at->format('F d, Y') }}</td>
+                      <td class="py-3 fs-5" style="width: 70%;">{{ ($admin ?? Auth::user())->created_at->format('F d, Y') }}</td>
                     </tr>
                     @endif
                   </tbody>
@@ -205,13 +205,13 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <form action="{{ route('admin.update', Auth::user()->id) }}" method="POST" enctype="multipart/form-data">
+              <form action="{{ route('admin.update', ($admin ?? Auth::user())->id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 
                 <div class="text-center mb-4">
                   <div class="profile-image-container">
-                    <img id="profilePreview" src="{{ Auth::user()->profile ? route('profile.image', ['id' => Auth::user()->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(Auth::user()->name).'&color=7F9CF5&background=EBF4FF&size=150' }}" alt="Profile Picture" class="profile-image">
+                    <img id="profilePreview" src="{{ ($admin ?? Auth::user())->profile ? route('profile.image', ['id' => ($admin ?? Auth::user())->id, 'v' => time()]) : 'https://ui-avatars.com/api/?name='.urlencode(($admin ?? Auth::user())->name).'&color=7F9CF5&background=EBF4FF&size=150' }}" alt="Profile Picture" class="profile-image">
                     <label for="profilePicture" class="profile-image-label">
                       <i class="bi bi-camera-fill me-1"></i> Change Photo
                     </label>
@@ -221,27 +221,27 @@
                 
                 <div class="mb-3">
                   <label for="name" class="form-label">Name</label>
-                  <input type="text" class="form-control" id="name" name="name" value="{{ Auth::user()->name }}">
+                  <input type="text" class="form-control" id="name" name="name" value="{{ ($admin ?? Auth::user())->name }}">
                 </div>
                 <div class="mb-3">
                   <label for="role" class="form-label">Role</label>
                   <select class="form-control" id="role" name="role">
-                    <option value="admin" {{ Auth::user()->role == 'admin' ? 'selected' : '' }}>Admin</option>
-                    <option value="super_admin" {{ Auth::user()->role == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
+                    <option value="admin" {{ (($admin ?? Auth::user())->role == 'admin') ? 'selected' : '' }}>Admin</option>
+                    <option value="super_admin" {{ (($admin ?? Auth::user())->role == 'super_admin') ? 'selected' : '' }}>Super Admin</option>
                   </select>
                 </div>
                 <div class="mb-3">
                   <label for="email" class="form-label">Email</label>
-                  <input type="email" class="form-control" id="email" name="email" value="{{ Auth::user()->email }}">
+                  <input type="email" class="form-control" id="email" name="email" value="{{ ($admin ?? Auth::user())->email }}">
                 </div>
-                @if(Auth::user()->firstname !== null || Auth::user()->lastname !== null)
+                @if(($admin ?? Auth::user())->firstname !== null || ($admin ?? Auth::user())->lastname !== null)
                 <div class="mb-3">
                   <label for="firstname" class="form-label">First Name</label>
-                  <input type="text" class="form-control" id="firstname" name="firstname" value="{{ Auth::user()->firstname }}">
+                  <input type="text" class="form-control" id="firstname" name="firstname" value="{{ ($admin ?? Auth::user())->firstname }}">
                 </div>
                 <div class="mb-3">
                   <label for="lastname" class="form-label">Last Name</label>
-                  <input type="text" class="form-control" id="lastname" name="lastname" value="{{ Auth::user()->lastname }}">
+                  <input type="text" class="form-control" id="lastname" name="lastname" value="{{ ($admin ?? Auth::user())->lastname }}">
                 </div>
                 @endif
                 <div class="mb-3">

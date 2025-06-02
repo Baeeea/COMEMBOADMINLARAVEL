@@ -24,6 +24,21 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.process');
 // Profile image route - supports users, admins, and residents
 Route::get('/profile-image/{id}', [ProfileImageController::class, 'getProfileImage'])->name('profile.image');
 
+// API Routes for Image Upload and Fetch
+Route::prefix('api/residents/{id}')->middleware('auth')->group(function () {
+    // Upload profile image
+    Route::post('/profile-image', [App\Http\Controllers\ResidentController::class, 'uploadProfileImage'])->name('api.residents.profile-image');
+    
+    // Upload ID images
+    Route::post('/id-images', [App\Http\Controllers\ResidentController::class, 'uploadIDImages'])->name('api.residents.id-images');
+    
+    // Get profile image
+    Route::get('/profile-image', [App\Http\Controllers\ResidentController::class, 'getProfileImage'])->name('api.residents.get-profile-image');
+    
+    // Get ID images
+    Route::get('/id-images', [App\Http\Controllers\ResidentController::class, 'getIDImages'])->name('api.residents.get-id-images');
+});
+
 // Dashboard routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 Route::get('/dashboard/refresh', [DashboardController::class, 'refreshData'])->middleware('auth')->name('dashboard.refresh');
@@ -77,16 +92,34 @@ Route::delete('/feedback/{feedback}', [App\Http\Controllers\FeedbackController::
 Route::get('/residents', [App\Http\Controllers\ResidentController::class, 'index'])->middleware('auth')->name('residents');
 Route::get('/residents/{id}', [App\Http\Controllers\ResidentController::class, 'show'])->middleware('auth')->name('residents.show');
 Route::get('/residents/{id}/view', [ViewResidentController::class, 'show'])->middleware('auth')->name('residents.view');
-Route::post('/residents/{id}/verify', [App\Http\Controllers\ResidentController::class, 'toggleVerification'])->middleware('auth')->name('residents.verify');
+Route::put('/residents/{id}', [App\Http\Controllers\ResidentController::class, 'update'])->middleware('auth')->name('residents.update');
+Route::post('/residents/{id}/verify', [App\Http\Controllers\ViewResidentController::class, 'toggleVerification'])->middleware('auth')->name('residents.verify');
 Route::delete('/residents/{id}', [App\Http\Controllers\ResidentController::class, 'destroy'])->middleware('auth')->name('residents.destroy');
+
+// RESTful API routes for ID image management (BLOB storage in MySQL)
+Route::post('/api/residents/{id}/id-images', [ViewResidentController::class, 'uploadIDImages'])->middleware('auth')->name('api.residents.id.upload');
+Route::put('/api/residents/{id}/id-images', [ViewResidentController::class, 'updateIDImages'])->middleware('auth')->name('api.residents.id.update');
+Route::get('/api/residents/{id}/id-images', [ViewResidentController::class, 'getIDImages'])->middleware('auth')->name('api.residents.id.get');
+Route::get('/residents/{id}/id-image/{type}', [ViewResidentController::class, 'serveIDImage'])->middleware('auth')->name('residents.id.image');
+Route::delete('/api/residents/{id}/id-images', [ViewResidentController::class, 'deleteIDImage'])->middleware('auth')->name('api.residents.id.delete');
 // Admin routes
 Route::get('/admin', [App\Http\Controllers\AdminController::class, 'index'])->middleware('auth')->name('admin');
 Route::get('/admin/create', [App\Http\Controllers\AdminController::class, 'create'])->middleware('auth')->name('admin.create');
 Route::post('/admin', [App\Http\Controllers\AdminController::class, 'store'])->middleware('auth')->name('admin.store');
+
+// My Profile route - using different path to avoid conflicts
+Route::get('/my-profile', [App\Http\Controllers\AdminController::class, 'profile'])->middleware('auth')->name('my.profile');
+
 Route::get('/admin/{id}', [App\Http\Controllers\AdminController::class, 'show'])->middleware('auth')->name('admin.show');
 Route::get('/admin/{id}/edit', [App\Http\Controllers\AdminController::class, 'edit'])->middleware('auth')->name('admin.edit');
 Route::put('/admin/{id}', [App\Http\Controllers\AdminController::class, 'update'])->middleware('auth')->name('admin.update');
 Route::delete('/admin/{id}', [App\Http\Controllers\AdminController::class, 'destroy'])->middleware('auth')->name('admin.destroy');
+
+// Profile management routes
+Route::post('/profile/upload', [App\Http\Controllers\AdminController::class, 'uploadProfile'])->middleware('auth')->name('profile.upload');
+Route::put('/profile/update', [App\Http\Controllers\AdminController::class, 'updateProfile'])->middleware('auth')->name('profile.update');
+Route::put('/password/update', [App\Http\Controllers\AdminController::class, 'updatePassword'])->middleware('auth')->name('password.update');
+
 Route::get('/profile', function () {
     return view('profile');
 })->middleware('auth')->name('profile');
@@ -328,6 +361,10 @@ Route::get('/messages/test', function() {
         ], 500);
     }
 })->middleware('auth')->name('messages.test');
+
+// Image serving routes for external files
+Route::get('/residents/{id}/image/profile', [App\Http\Controllers\ResidentController::class, 'serveProfileImage'])->name('resident.profile.image');
+Route::get('/residents/{id}/image/id/{type}', [App\Http\Controllers\ResidentController::class, 'serveIDImage'])->name('resident.id.image')->where('type', 'front|back');
 
 
 

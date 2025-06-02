@@ -60,7 +60,7 @@
                 <li class="dropdown-header text-center">
                     <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
                 </li>
-                <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+                <li><a class="dropdown-item fw-normal me-5" href="{{ route('my.profile') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
             </ul>

@@ -10,11 +10,9 @@ class Feedback extends Model
     use HasFactory;
 
     protected $table = 'feedback';
-    public $timestamps = true;
-
-    protected $fillable = [
+    public $timestamps = true;    protected $fillable = [
         'user_id',
-        'content'
+        'feedback'
     ];
 
     protected $casts = [

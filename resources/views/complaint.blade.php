@@ -210,9 +210,15 @@
                 <tbody id="complaintsTableBody">
                     @foreach($complaints as $complaint)
                     <tr>
-                        <td class="py-4">{{ $complaint->lastname }}, {{ $complaint->firstname }} {{ $complaint->middle_name }}</td>
+                        <td class="py-4">
+                            @if($complaint->resident)
+                                {{ $complaint->resident->last_name }}, {{ $complaint->resident->first_name }} {{ $complaint->resident->middle_name }}
+                            @else
+                                N/A
+                            @endif
+                        </td>
                         <td class="py-4">{{ $complaint->complaint_type }}</td>
-                        <td class="py-4">{{ \Carbon\Carbon::parse($complaint->timestamp)->format('m / d / y') }}</td>
+                        <td class="py-4">{{ \Carbon\Carbon::parse($complaint->created_at)->format('m / d / y') }}</td>
                         <td class="py-4">{{ $complaint->status }}</td>
                         <td class="py-4">
                             @php
@@ -391,9 +397,15 @@
 
             let tableRows = '';
             complaints.forEach(complaint => {
-                const date = new Date(complaint.timestamp);
+                const date = new Date(complaint.created_at);
                 const formattedDate = `${(date.getMonth() + 1).toString().padStart(2, '0')} / ${date.getDate().toString().padStart(2, '0')} / ${date.getFullYear().toString().slice(-2)}`;
-                const middleName = complaint.middle_name ? complaint.middle_name : '';
+                
+                // Get name from resident relationship or show N/A
+                let displayName = 'N/A';
+                if (complaint.resident) {
+                    const middleName = complaint.resident.middle_name ? complaint.resident.middle_name : '';
+                    displayName = `${complaint.resident.last_name}, ${complaint.resident.first_name} ${middleName}`;
+                }
 
                 // Normalize the sentiment value
                 const sentiment = (complaint.sentiment || 'neutral').toLowerCase();
@@ -407,7 +419,7 @@
 
                 tableRows += `
                     <tr>
-                        <td class="py-4">${complaint.lastname}, ${complaint.firstname} ${middleName}</td>
+                        <td class="py-4">${displayName}</td>
                         <td class="py-4">${complaint.complaint_type || 'N/A'}</td>
                         <td class="py-4">${formattedDate}</td>
                         <td class="py-4">${complaint.status || 'Pending'}</td>

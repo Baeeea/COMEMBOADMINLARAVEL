@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ComplaintRequest;
+use App\Models\Resident;
 use App\Services\SentimentAnalysisService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,24 +18,24 @@ class ComplaintController extends Controller
     public function index()
     {
         $complaintCount = ComplaintRequest::count();
-        $complaints = ComplaintRequest::select(
-            'user_id', 'firstname', 'lastname', 'middle_name',
-            'complaint_type', 'timestamp', 'status', 'sentiment',
-            'specific_description'
-        )->get();
+        $complaints = ComplaintRequest::with(['resident:user_id,first_name,last_name,middle_name'])
+            ->select(
+                'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
+                'explanation'
+            )->get();
 
         // Analyze sentiments for complaints that need it
         $sentimentService = new SentimentAnalysisService();
         foreach ($complaints as $complaint) {
-            if (!empty($complaint->specific_description) && empty($complaint->sentiment)) {
-                $result = $sentimentService->analyzeSentiment($complaint->specific_description);
+            if (!empty($complaint->explanation) && empty($complaint->sentiment)) {
+                $result = $sentimentService->analyzeSentiment($complaint->explanation);
 
-                // Update sentiment and determine appropriate status
+                // Update sentiment and determine appropriate phase_status
                 $complaint->sentiment = $result['sentiment'];
 
-                // Only update status if it's pending or not set
-                if (empty($complaint->status) || $complaint->status === 'pending') {
-                    $complaint->status = match ($result['sentiment']) {
+                // Only update phase_status if it's pending or not set
+                if (empty($complaint->phase_status) || $complaint->phase_status === 'pending') {
+                    $complaint->phase_status = match ($result['sentiment']) {
                         'negative' => 'phase3', // Investigation needed
                         'positive' => 'phase1', // Standard review
                         default => 'phase2',    // Additional review needed
@@ -52,30 +53,30 @@ class ComplaintController extends Controller
     {
         $status = $request->query('status');
 
-        $query = ComplaintRequest::select(
-            'user_id', 'firstname', 'lastname', 'middle_name',
-            'complaint_type', 'timestamp', 'status', 'sentiment',
-            'specific_description'
-        );
+        $query = ComplaintRequest::with(['resident:user_id,first_name,last_name,middle_name'])
+            ->select(
+                'user_id', 'complaint_type', 'created_at', 'phase_status', 'sentiment',
+                'explanation'
+            );
 
         if ($status && $status !== 'all') {
-            $query->where('status', $status);
+            $query->where('phase_status', $status);
         }
 
-        $complaints = $query->orderBy('timestamp', 'desc')->get();
+        $complaints = $query->orderBy('created_at', 'desc')->get();
 
         // Analyze sentiments for complaints that need it
         $sentimentService = new SentimentAnalysisService();
         foreach ($complaints as $complaint) {
-            if (!empty($complaint->specific_description)) {
-                $result = $sentimentService->analyzeSentiment($complaint->specific_description);
+            if (!empty($complaint->explanation)) {
+                $result = $sentimentService->analyzeSentiment($complaint->explanation);
 
                 // Always update sentiment to get the latest analysis
                 $complaint->sentiment = $result['sentiment'];
 
-                // Only update status if it's pending or not set
-                if (empty($complaint->status) || $complaint->status === 'pending') {
-                    $complaint->status = match ($result['sentiment']) {
+                // Only update phase_status if it's pending or not set
+                if (empty($complaint->phase_status) || $complaint->phase_status === 'pending') {
+                    $complaint->phase_status = match ($result['sentiment']) {
                         'negative' => 'phase3', // Investigation needed
                         'positive' => 'phase1', // Standard review
                         default => 'phase2',    // Additional review needed
@@ -91,7 +92,7 @@ class ComplaintController extends Controller
 
     public function getLastUpdate()
     {
-        $lastUpdate = ComplaintRequest::max('updated_at') ?: ComplaintRequest::max('timestamp');
+        $lastUpdate = ComplaintRequest::max('created_at');
         $complaintCount = ComplaintRequest::count();
         
         return response()->json([
@@ -103,11 +104,11 @@ class ComplaintController extends Controller
 
     public function edit($user_id)
     {
-        $complaint = ComplaintRequest::where('user_id', $user_id)->firstOrFail();            // Analyze sentiment if specific_description exists
-            if (!empty($complaint->specific_description)) {
+        $complaint = ComplaintRequest::where('user_id', $user_id)->firstOrFail();            // Analyze sentiment if explanation exists
+            if (!empty($complaint->explanation)) {
                 try {
                     $sentimentService = new SentimentAnalysisService();
-                    $result = $sentimentService->analyzeSentiment($complaint->specific_description);
+                    $result = $sentimentService->analyzeSentiment($complaint->explanation);
 
                     Log::info('Sentiment analysis result', [
                         'complaint_id' => $complaint->user_id,
@@ -132,10 +133,10 @@ class ComplaintController extends Controller
                             }
                         }
 
-                        // Only update status if it's pending or not set
-                        if (empty($complaint->status) || $complaint->status === 'pending') {
-                            // Use enhanced status determination
-                            $complaint->status = match (true) {
+                        // Only update phase_status if it's pending or not set
+                        if (empty($complaint->phase_status) || $complaint->phase_status === 'pending') {
+                            // Use enhanced phase_status determination
+                            $complaint->phase_status = match (true) {
                                 $hasWeightedNegative => 'phase3',    // Immediate investigation for weighted negatives
                                 $result['sentiment'] === 'negative' => 'phase2', // Standard negative handling
                                 $result['sentiment'] === 'positive' => 'phase1', // Positive feedback
@@ -148,7 +149,7 @@ class ComplaintController extends Controller
                     Log::info("Complaint sentiment analyzed", [
                         'user_id' => $user_id,
                         'sentiment' => $result['sentiment'],
-                        'status' => $complaint->status
+                        'phase_status' => $complaint->phase_status
                     ]);
                 }
             } catch (\Exception $e) {
@@ -170,17 +171,24 @@ class ComplaintController extends Controller
 
             // Validate the request
             $request->validate([
-                'status' => 'required|in:pending,phase1,phase2,phase3,phase4,phase5,completed,rejected',
-                'status_explanation' => 'nullable|string|max:500',
-                'location' => 'nullable|string|max:100',
-                'specific_description' => 'nullable|string|max:500'
+                'phase_status' => 'required|in:pending,phase1,phase2,phase3,phase4,phase5,completed,rejected',
+                'explanation' => 'nullable|string|max:500',
+                'complaint_type' => 'nullable|string|max:100',
+                'description' => 'nullable|string',
+                'date_occurrence' => 'nullable|date',
+                'frequency' => 'nullable|string|max:100',
+                'people_involved' => 'nullable|string',
+                'location_occurrence' => 'nullable|string|max:200',
+                'photo' => 'nullable|file|image|max:2048',
+                'video' => 'nullable|file|mimes:mp4,avi,mov|max:10240',
+                'phases' => 'nullable|string|max:100'
             ]);
 
             // Analyze sentiment if description is updated
             $sentiment = $complaint->sentiment; // Keep existing sentiment by default
-            if ($request->has('specific_description') && $request->specific_description) {
+            if ($request->has('description') && $request->description) {
                 $sentimentService = new SentimentAnalysisService();
-                $result = $sentimentService->analyzeSentiment($request->specific_description);
+                $result = $sentimentService->analyzeSentiment($request->description);
                 $sentiment = $result['sentiment'];
                 Log::info("Sentiment analysis result for user_id {$user_id}", [
                     'sentiment' => $sentiment,
@@ -189,19 +197,40 @@ class ComplaintController extends Controller
                 ]);
             }
 
-            // Determine status based on sentiment
-            $newStatus = match ($sentiment) {
+            // Determine phase_status based on sentiment
+            $newPhaseStatus = match ($sentiment) {
                 'negative' => 'phase3', // Set to investigation for negative sentiment
                 'positive' => 'phase1', // Set to review for positive sentiment
                 default => 'phase2', // Set to additional requirements for neutral
             };
 
-            // Update the editable fields
+            // Handle file uploads
+            $photoPath = $complaint->photo;
+            $videoPath = $complaint->video;
+
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                $photoPath = $photo->store('complaint_photos', 'public');
+            }
+
+            if ($request->hasFile('video')) {
+                $video = $request->file('video');
+                $videoPath = $video->store('complaint_videos', 'public');
+            }
+
+            // Update the editable fields with the new simplified structure
             $update = [
-                'status' => $newStatus,
-                'status_explanation' => $request->status_explanation,
-                'location' => $request->location,
-                'specific_description' => $request->specific_description,
+                'complaint_type' => $request->complaint_type,
+                'description' => $request->description,
+                'date_occurrence' => $request->date_occurrence,
+                'frequency' => $request->frequency,
+                'people_involved' => $request->people_involved,
+                'location_occurrence' => $request->location_occurrence,
+                'photo' => $photoPath,
+                'video' => $videoPath,
+                'phases' => $request->phases,
+                'phase_status' => $request->phase_status,
+                'explanation' => $request->explanation,
                 'sentiment' => $sentiment
             ];
 
@@ -228,25 +257,25 @@ class ComplaintController extends Controller
     {
         try {
             $sentimentService = new SentimentAnalysisService();
-            $complaints = ComplaintRequest::whereNotNull('specific_description')
-                ->where('specific_description', '!=', '')
+            $complaints = ComplaintRequest::whereNotNull('explanation')
+                ->where('explanation', '!=', '')
                 ->get();
 
             $updatedCount = 0;
             foreach ($complaints as $complaint) {
-                $result = $sentimentService->analyzeSentiment($complaint->specific_description);
+                $result = $sentimentService->analyzeSentiment($complaint->explanation);
 
-                // Update complaint with sentiment and determine status based on sentiment
-                $newStatus = match ($result['sentiment']) {
+                // Update complaint with sentiment and determine phase_status based on sentiment
+                $newPhaseStatus = match ($result['sentiment']) {
                     'negative' => 'phase3', // Set to investigation for negative sentiment
                     'positive' => 'phase1', // Set to review for positive sentiment
                     default => 'phase2', // Set to additional requirements for neutral
                 };
 
-                $updated = ComplaintRequest::where('user_id', $result['user_id'])
+                $updated = ComplaintRequest::where('user_id', $complaint->user_id)
                     ->update([
                         'sentiment' => $result['sentiment'],
-                        'status' => $newStatus
+                        'phase_status' => $newPhaseStatus
                     ]);
                 if ($updated) {
                     $updatedCount++;

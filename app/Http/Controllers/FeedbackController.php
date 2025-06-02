@@ -28,17 +28,16 @@ class FeedbackController extends Controller
 
     /**
      * Store a newly created feedback in storage.
-     */
-    public function store(Request $request)
+     */    public function store(Request $request)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'content' => 'required|string|max:1000',
+            'feedback' => 'required|string|max:1000',
         ]);
 
         Feedback::create([
             'user_id' => $request->user_id,
-            'content' => $request->content,
+            'feedback' => $request->feedback,
         ]);
 
         $this->triggerLiveUpdate();
@@ -65,17 +64,16 @@ class FeedbackController extends Controller
 
     /**
      * Update the specified feedback in storage.
-     */
-    public function update(Request $request, Feedback $feedback)
+     */    public function update(Request $request, Feedback $feedback)
     {
         $request->validate([
             'user_id' => 'required|exists:users,id',
-            'content' => 'required|string|max:1000',
+            'feedback' => 'required|string|max:1000',
         ]);
 
         $feedback->update([
             'user_id' => $request->user_id,
-            'content' => $request->content,
+            'feedback' => $request->feedback,
         ]);
 
         $this->triggerLiveUpdate();

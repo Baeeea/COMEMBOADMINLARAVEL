@@ -138,7 +138,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form method="POST" action="{{ route('residents.destroy', $resident->id) }}">
+                    <form method="POST" action="{{ route('residents.destroy', $resident->user_id) }}">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-danger">Delete</button>
