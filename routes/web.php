@@ -9,10 +9,10 @@ use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ViewResidentController;
 use App\Http\Controllers\ProfileImageController;
 use App\Services\SentimentAnalysisService;
-// Redirect root to dashboard if authenticated, otherwise to login
+// Welcome page route - shows logo and redirects to login
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login.form');
-});
+    return view('Welcome'); // Your welcome Blade file: resources/views/Welcome.blade.php
+})->name('welcome');
 
 // Login routes
 Route::get('/login', function () {
