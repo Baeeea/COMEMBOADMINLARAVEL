@@ -21,7 +21,7 @@
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ welcome.php [L]
+    RewriteRule ^ welcome.blade.php [L]
 
  
 </IfModule>
