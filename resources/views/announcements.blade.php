@@ -59,7 +59,7 @@
             <li class="dropdown-header text-center">
                 <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
-            <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><a class="dropdown-item fw-normal me-5" href="{{ route('my.profile', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -108,6 +108,7 @@
               </li>
             </ul>
           </li>
+          <!-- Messages link -->
           <li class="sidebar-item">
             <a href="{{ route('messages') }}" class="sidebar-link">
               <i class="bi bi-chat-left-text-fill fs-4"></i>              

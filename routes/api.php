@@ -37,5 +37,8 @@ Route::get('/documentrequest/{id}/image2', [DocumentRequestController::class, 'g
 Route::get('/documentrequest/{id}/image3', [DocumentRequestController::class, 'getImage3'])->name('api.documentrequest.image3');
 
 // Resident ID Images API Routes (from residents table)
-Route::get('/documentrequest/{id}/id-front', [DocumentRequestController::class, 'getIdFront'])->name('api.documentrequest.idFront');
-Route::get('/documentrequest/{id}/id-back', [DocumentRequestController::class, 'getIdBack'])->name('api.documentrequest.idBack');
+Route::get('/documentrequest/{user_id}/id-front', [DocumentRequestController::class, 'getIdFront'])->name('api.documentrequest.idFront');
+Route::get('/documentrequest/{user_id}/id-back', [DocumentRequestController::class, 'getIdBack'])->name('api.documentrequest.idBack');
+
+// Image metadata API Route (provides information about all available images)
+Route::get('/documentrequest/{id}/images/metadata', [DocumentRequestController::class, 'getImageMetadata'])->name('api.documentrequest.images.metadata');

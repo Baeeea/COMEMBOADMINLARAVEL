@@ -108,6 +108,7 @@
               </li>
             </ul>
           </li>
+          <!-- Messages link -->
           <li class="sidebar-item">
             <a href="{{ route('messages') }}" class="sidebar-link">
               <i class="bi bi-chat-left-text-fill fs-4"></i>              

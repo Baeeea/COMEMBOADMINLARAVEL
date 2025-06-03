@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
     @vite(['resources/css/styles.scss', 'resources/js/app.js', 'resources/css/app.css', 'resources/js/script.js'])
+    <script src="{{ asset('js/blob-image-handler.js') }}"></script>
   </head>
 
   <body>
@@ -59,7 +60,7 @@
             <li class="dropdown-header text-center">
                 <strong class="text-primary">{{ Auth::user()->name ?? 'Kevin Anderson' }}</strong><br>
             </li>
-            <li><a class="dropdown-item fw-normal me-5" href="{{ route('admin.show', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
+            <li><a class="dropdown-item fw-normal me-5" href="{{ route('my.profile', Auth::user()->id ?? '') }}"><i class="bi bi-person me-2 fs-5"></i> My Profile</a></li>
             <li><a class="dropdown-item fw-normal me-5" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right me-2 fs-5"></i> Sign Out</a></li>
         </ul>
     </li>
@@ -262,8 +263,13 @@
       <td style="width: 80%;">
         @if($document->id_front)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.idFront', $document->id) }}" alt="Resident ID Front" style="max-width: 200px;" class="img-thumbnail">
+            <img src="{{ route('residents.id.image', ['id' => $document->user_id, 'type' => 'front']) }}" 
+                 alt="Resident ID Front" 
+                 style="max-width: 200px;" 
+                 class="img-thumbnail">
           </div>
+        @else
+          <div class="text-muted">No ID Front image available</div>
         @endif
       </td>
     </tr>
@@ -272,8 +278,13 @@
       <td style="width: 80%;">
         @if($document->id_back)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.idBack', $document->id) }}" alt="Resident ID Back" style="max-width: 200px;" class="img-thumbnail">
+            <img src="{{ route('residents.id.image', ['id' => $document->user_id, 'type' => 'back']) }}" 
+                 alt="Resident ID Back" 
+                 style="max-width: 200px;" 
+                 class="img-thumbnail">
           </div>
+        @else
+          <div class="text-muted">No ID Back image available</div>
         @endif
       </td>
     </tr>
@@ -284,8 +295,10 @@
       <td style="width: 80%;">
         @if($document->validIDFront)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.validIDFront', $document->id) }}" alt="Valid ID Front" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/valid-id-front" alt="Valid ID Front" style="max-width: 200px;" class="img-thumbnail">
           </div>
+        @else
+          <div class="text-muted">No Valid ID Front image available</div>
         @endif
       </td>
     </tr>
@@ -294,7 +307,7 @@
       <td style="width: 80%;">
         @if($document->validIDBack)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.validIDBack', $document->id) }}" alt="Valid ID Back" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/valid-id-back" alt="Valid ID Back" style="max-width: 200px;" class="img-thumbnail">
           </div>
         @endif
       </td>
@@ -307,7 +320,7 @@
       <td style="width: 80%;">
         @if($document->photo_store)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.photoStore', $document->id) }}" alt="Photo of Store" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/photo-store" alt="Photo of Store" style="max-width: 200px;" class="img-thumbnail">
           </div>
         @endif
       </td>
@@ -321,7 +334,7 @@
       <td style="width: 80%;">
         @if($document->photo_current_house)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.photoCurrentHouse', $document->id) }}" alt="Photo of Current House" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/photo-current-house" alt="Photo of Current House" style="max-width: 200px;" class="img-thumbnail">
           </div>
         @endif
       </td>
@@ -331,7 +344,7 @@
       <td style="width: 80%;">
         @if($document->photo_renovation)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.photoRenovation', $document->id) }}" alt="Photo of Renovation Plans" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/photo-renovation" alt="Photo of Renovation Plans" style="max-width: 200px;" class="img-thumbnail">
           </div>
         @endif
       </td>
@@ -341,7 +354,7 @@
       <td style="width: 80%;">
         @if($document->photo_proof)
           <div class="mb-2">
-            <img src="{{ route('api.documentrequest.photoProof', $document->id) }}" alt="Photo Proof of Renovation" style="max-width: 200px;" class="img-thumbnail">
+            <img src="/api/documentrequest/{{ $document->id }}/photo-proof" alt="Photo Proof of Renovation" style="max-width: 200px;" class="img-thumbnail">
           </div>
         @endif
       </td>
@@ -354,7 +367,7 @@
       <th style="width: 20%;">Additional Image 1</th>
       <td style="width: 80%;">
         <div class="mb-2">
-          <img src="{{ route('api.documentrequest.image', $document->id) }}" alt="Additional Image 1" style="max-width: 200px;" class="img-thumbnail">
+          <img src="/api/documentrequest/{{ $document->id }}/image" alt="Additional Image 1" style="max-width: 200px;" class="img-thumbnail">
         </div>
       </td>
     </tr>
@@ -365,7 +378,7 @@
       <th style="width: 20%;">Additional Image 2</th>
       <td style="width: 80%;">
         <div class="mb-2">
-          <img src="{{ route('api.documentrequest.image2', $document->id) }}" alt="Additional Image 2" style="max-width: 200px;" class="img-thumbnail">
+          <img src="/api/documentrequest/{{ $document->id }}/image2" alt="Additional Image 2" style="max-width: 200px;" class="img-thumbnail">
         </div>
       </td>
     </tr>
@@ -376,7 +389,7 @@
       <th style="width: 20%;">Additional Image 3</th>
       <td style="width: 80%;">
         <div class="mb-2">
-          <img src="{{ route('api.documentrequest.image3', $document->id) }}" alt="Additional Image 3" style="max-width: 200px;" class="img-thumbnail">
+          <img src="/api/documentrequest/{{ $document->id }}/image3" alt="Additional Image 3" style="max-width: 200px;" class="img-thumbnail">
         </div>
       </td>
     </tr>
@@ -435,5 +448,20 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     {{-- Auto-refresh disabled: <script src="{{ asset('js/live-updates.js') }}"></script> --}}
+    
+    <script>
+      // Simple script to handle document form
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('Document edit page loaded');
+        
+        // Initialize any form validation or interactions here
+        const statusSelect = document.querySelector('select[name="status"]');
+        if (statusSelect) {
+          statusSelect.addEventListener('change', function() {
+            console.log('Status changed to:', this.value);
+          });
+        }
+      });
+    </script>
   </body>
 </html>

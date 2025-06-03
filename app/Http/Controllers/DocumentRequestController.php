@@ -108,6 +108,7 @@ class DocumentRequestController extends Controller
         
         // Document-specific fields (always from document request)
         $data->id = $document->id;
+        $data->user_id = $document->user_id; // Add user_id
         $data->document_type = $document->document_type;
         $data->purpose = $document->purpose;
         $data->status = $document->status;
@@ -462,42 +463,184 @@ class DocumentRequestController extends Controller
     }
 
     /**
-     * Get id_front from residents table as BLOB data
+     * Get ID front image from residents table as BLOB data
+     * 
+     * @param int $user_id User ID
+     * @return \Illuminate\Http\Response
      */
-    public function getIdFront($id)
+    public function getIdFront($user_id)
     {
-        $document = DocumentRequest::with('resident')->findOrFail($id);
-        
-        if (!$document->resident || !$document->resident->id_front) {
-            return response()->json(['error' => 'ID Front photo not found'], 404);
-        }
+        try {
+            $resident = \App\Models\Resident::where('user_id', $user_id)->first();
+            
+            if (!$resident || !$resident->id_front) {
+                return response()->json(['error' => 'ID Front photo not found'], 404);
+            }
 
-        // Detect MIME type from binary data
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->buffer($document->resident->id_front);
-        
-        return response($document->resident->id_front)
-            ->header('Content-Type', $mimeType ?: 'image/jpeg')
-            ->header('Cache-Control', 'public, max-age=3600');
+            // Detect MIME type from binary data
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($resident->id_front);
+            
+            // Generate ETag for client-side caching
+            $lastModified = $resident->updated_at ? $resident->updated_at->timestamp : time();
+            $etag = md5($resident->id_front . $lastModified);
+            
+            // Return binary image data with proper headers
+            return response($resident->id_front)
+                ->header('Content-Type', $mimeType ?: 'image/jpeg')
+                ->header('Cache-Control', 'public, max-age=3600')
+                ->header('ETag', '"' . $etag . '"');
+        } catch (\Exception $e) {
+            \Log::error('Error serving ID Front image:', [
+                'user_id' => $user_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to retrieve ID Front image',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Get id_back from residents table as BLOB data
+     * Get ID back image from residents table as BLOB data
+     * 
+     * @param int $user_id User ID
+     * @return \Illuminate\Http\Response
      */
-    public function getIdBack($id)
+    public function getIdBack($user_id)
     {
-        $document = DocumentRequest::with('resident')->findOrFail($id);
-        
-        if (!$document->resident || !$document->resident->id_back) {
-            return response()->json(['error' => 'ID Back photo not found'], 404);
-        }
+        try {
+            $resident = \App\Models\Resident::where('user_id', $user_id)->first();
+            
+            if (!$resident || !$resident->id_back) {
+                return response()->json(['error' => 'ID Back photo not found'], 404);
+            }
 
-        // Detect MIME type from binary data
-        $finfo = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->buffer($document->resident->id_back);
+            // Detect MIME type from binary data
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mimeType = $finfo->buffer($resident->id_back);
+            
+            // Generate ETag for client-side caching
+            $lastModified = $resident->updated_at ? $resident->updated_at->timestamp : time();
+            $etag = md5($resident->id_back . $lastModified);
+            
+            // Return binary image data with proper headers
+            return response($resident->id_back)
+                ->header('Content-Type', $mimeType ?: 'image/jpeg')
+                ->header('Cache-Control', 'public, max-age=3600')
+                ->header('ETag', '"' . $etag . '"');
+        } catch (\Exception $e) {
+            \Log::error('Error serving ID Back image:', [
+                'user_id' => $user_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to retrieve ID Back image',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * API endpoint to get image metadata (formats, sizes, mime types)
+     * 
+     * @param int $id Document request ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getImageMetadata($id)
+    {
+        try {
+            $document = DocumentRequest::with('resident')->findOrFail($id);
+            $metadata = [];
+            
+            // Helper function to get image information
+            $getImageInfo = function($imageData) {
+                if (!$imageData) return null;
+                
+                $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->buffer($imageData);
+                $size = strlen($imageData);
+                
+                return [
+                    'size_bytes' => $size,
+                    'size_formatted' => $this->formatBytes($size),
+                    'mime_type' => $mimeType
+                ];
+            };
+            
+            // Gather metadata for all available images
+            if ($document->resident) {
+                $metadata['id_front'] = [
+                    'exists' => !empty($document->resident->id_front),
+                    'info' => $getImageInfo($document->resident->id_front),
+                    'url' => !empty($document->resident->id_front) ? 
+                        route('api.documentrequest.idFront', $document->user_id) : null
+                ];
+                
+                $metadata['id_back'] = [
+                    'exists' => !empty($document->resident->id_back),
+                    'info' => $getImageInfo($document->resident->id_back),
+                    'url' => !empty($document->resident->id_back) ? 
+                        route('api.documentrequest.idBack', $document->user_id) : null
+                ];
+            }
+            
+            // Document request images
+            $metadata['valid_id_front'] = [
+                'exists' => !empty($document->validIDFront),
+                'info' => $getImageInfo($document->validIDFront),
+                'url' => !empty($document->validIDFront) ? 
+                    route('api.documentrequest.validIDFront', $document->id) : null
+            ];
+            
+            $metadata['valid_id_back'] = [
+                'exists' => !empty($document->validIDBack),
+                'info' => $getImageInfo($document->validIDBack),
+                'url' => !empty($document->validIDBack) ? 
+                    route('api.documentrequest.validIDBack', $document->id) : null
+            ];
+            
+            // Return the metadata as JSON
+            return response()->json([
+                'success' => true,
+                'document_id' => $id, 
+                'images' => $metadata
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting image metadata:', [
+                'document_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to retrieve image metadata',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Helper function to format bytes to human-readable format
+     * 
+     * @param int $bytes Number of bytes
+     * @param int $precision Decimal precision
+     * @return string Formatted size string
+     */
+    private function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         
-        return response($document->resident->id_back)
-            ->header('Content-Type', $mimeType ?: 'image/jpeg')
-            ->header('Cache-Control', 'public, max-age=3600');
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        
+        $bytes /= pow(1024, $pow);
+        
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }
