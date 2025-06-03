@@ -112,12 +112,12 @@
             </ul>
           </li>
           <!-- Messages link -->
-          <li class="sidebar-item">
+          {{-- <li class="sidebar-item">
             <a href="{{ route('messages') }}" class="sidebar-link">
               <i class="bi bi-chat-left-text-fill fs-4"></i>              
                 <span class="fs-5 lead text-secondary">Messages</span>
             </a>
-          </li>
+          </li> --}}
           <li class="sidebar-item">
             <a href="{{ route('feedback') }}" class="sidebar-link">
               <i class="bi bi-chat-quote-fill fs-4"></i>
