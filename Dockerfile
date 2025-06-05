@@ -1,7 +1,7 @@
-# Use PHP 8.2 with Apache on Debian Buster (stable, includes PHP source needed for extensions)
+# Use PHP 8.2 with Apache (Debian Buster)
 FROM php:8.2-apache-buster
 
-# Install system dependencies and PHP extensions required by Laravel 12
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libzip-dev \
     zip \
@@ -15,26 +15,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install pdo_mysql zip mbstring bcmath xml \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache mod_rewrite for Laravel routes
+# Enable mod_rewrite for Laravel pretty URLs
 RUN a2enmod rewrite
 
-# Set working directory inside container
+# Change Apache DocumentRoot to Laravel's public folder
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+
+# Update Apache site config to use public/ as root
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf \
+    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}/../!g' /etc/apache2/apache2.conf
+
+# Set working directory
 WORKDIR /var/www/html
 
-# Copy existing application directory contents
+# Copy app source
 COPY . /var/www/html
 
-# Install Composer (latest stable)
+# Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install PHP dependencies without dev packages, optimize autoloader
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions (optional but recommended for Laravel)
+# Set correct permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose port 80 to the outside world
+# Expose HTTP port
 EXPOSE 80
 
-# Start Apache in the foreground
+# Start Apache
 CMD ["apache2-foreground"]
