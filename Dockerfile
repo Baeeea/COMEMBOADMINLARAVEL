@@ -1,7 +1,6 @@
-# Use the official PHP 8.1 image with Apache
-FROM php:8.1-apache
+FROM php:8.2-apache
 
-# Install system dependencies and PHP extensions required by Laravel
+# Install system dependencies and PHP extensions required by Laravel 12
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libzip-dev \
     zip \
@@ -10,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libonig-dev \
     libxml2-dev \
+    build-essential \
     && docker-php-ext-install pdo_mysql zip mbstring bcmath xml tokenizer \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -22,16 +22,16 @@ WORKDIR /var/www/html
 # Copy existing application directory contents
 COPY . /var/www/html
 
-# Install Composer globally
+# Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install PHP dependencies for the project without dev dependencies and optimize autoloader
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Install PHP dependencies without dev packages, optimize autoloader
+RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions for Laravel storage and cache directories
+# Set permissions (optional but recommended)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Expose port 80 to the outside world
+# Expose port 80
 EXPOSE 80
 
 # Start Apache in the foreground
